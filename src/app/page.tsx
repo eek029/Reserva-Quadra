@@ -1,5 +1,4 @@
-import { Apple, Chrome as Google, MapPin, Eye, EyeOff } from 'lucide-react';
-import Image from 'next/image';
+import { Apple, Chrome as Google } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {

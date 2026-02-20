@@ -41,6 +41,7 @@ export default function RegisterPage() {
                         <div className="flex flex-col items-center space-y-4">
                             <div className="relative w-32 h-32 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden group">
                                 {previewImage ? (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
                                     <img src={previewImage} alt="Preview" className="w-full h-full object-cover" />
                                 ) : (
                                     <Camera className="w-10 h-10 text-gray-400" />
@@ -114,8 +115,8 @@ export default function RegisterPage() {
                                             type="button"
                                             onClick={() => setCargo(item)}
                                             className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${cargo === item
-                                                    ? 'border-violet-600 bg-violet-50 text-violet-700'
-                                                    : 'border-gray-200 text-gray-500 hover:border-violet-200'
+                                                ? 'border-violet-600 bg-violet-50 text-violet-700'
+                                                : 'border-gray-200 text-gray-500 hover:border-violet-200'
                                                 }`}
                                         >
                                             {item}
