@@ -1,13 +1,24 @@
 'use client';
 
-import { Bell, User, ArrowLeft, BookOpen } from 'lucide-react';
+import { Bell, User, ArrowLeft, BookOpen, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 
 export default function Header() {
     const pathname = usePathname();
+    const router = useRouter();
     const isDashboard = pathname === '/dashboard';
+
+    const handleLogout = async () => {
+        try {
+            await supabase.auth.signOut();
+            router.replace('/');
+        } catch (error) {
+            console.error('Error logging out:', error);
+        }
+    };
 
     return (
         <header className="bg-violet-600 text-white p-4 shadow-md sticky top-0 z-50 w-full">
@@ -54,6 +65,9 @@ export default function Header() {
                             <Link href="/profile" className="p-2 hover:bg-violet-500 rounded-full transition-colors flex flex-col items-center" title="Perfil">
                                 <User className="w-5 h-5" />
                             </Link>
+                            <button onClick={handleLogout} className="p-2 hover:bg-red-500 rounded-full transition-colors flex flex-col items-center ml-2" title="Sair da Conta">
+                                <LogOut className="w-5 h-5" />
+                            </button>
                         </>
                     ) : (
                         <Link href="/dashboard" className="flex items-center text-sm font-medium hover:text-violet-200 transition-colors">
