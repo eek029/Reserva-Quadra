@@ -1,19 +1,11 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+
 
 export default function RegrasPage() {
     return (
-        <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl mx-auto">
-                <div className="flex items-center mb-8">
-                    <Link href="/dashboard" className="flex items-center text-violet-600 hover:text-violet-500 font-medium transition-colors">
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Voltar para o Dashboard
-                    </Link>
-                </div>
-
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 p-8 md:p-12">
                     <h1 className="text-3xl font-bold text-gray-900 mb-8 border-b border-gray-100 pb-4">Regras para utilização da Quadra Poliesportiva do Complexo Júlio Prestes</h1>
 

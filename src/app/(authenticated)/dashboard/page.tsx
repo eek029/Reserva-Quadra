@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BookOpen, User, Calendar as CalendarIcon, List, X, ChevronLeft, ChevronRight, Check, ShieldCheck, CheckCircle2, Bell } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
+import { Calendar as CalendarIcon, List, X, ChevronLeft, ChevronRight, Check, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 // Define types to replace 'any'
@@ -252,54 +250,8 @@ export default function DashboardPage() {
     };
 
     return (
-        <main className="min-h-screen bg-gray-50 flex flex-col font-sans pb-20">
-            {/* Top Header */}
-            <header className="bg-violet-600 text-white p-4 shadow-md sticky top-0 z-10">
-                <div className="max-w-4xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white">
-                            <Image
-                                src="/Complexo.jpeg"
-                                alt="Logo"
-                                fill
-                                className="object-cover"
-                            />
-                        </div>
-                        <h1 className="text-lg font-bold">Reserva Quadra</h1>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="relative group p-2 hover:bg-violet-500 rounded-full transition-colors cursor-pointer" title="Notificações">
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-violet-600"></span>
-                            {/* Dropdown Notificações */}
-                            <div className="absolute right-0 mt-3 w-72 bg-white rounded-xl shadow-xl border border-gray-100 hidden group-hover:block transition-all z-50 overflow-hidden">
-                                <div className="p-3 border-b border-gray-100 font-semibold text-sm text-gray-800 bg-gray-50">
-                                    Notificações
-                                </div>
-                                <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
-                                    <div className="p-3 text-sm text-gray-600 hover:bg-violet-50 transition-colors flex items-start gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-violet-600 mt-1.5 flex-shrink-0"></div>
-                                        <p><strong>Lembrete:</strong> Faltam 15 min para sua reserva da Quadra Poliesportiva.</p>
-                                    </div>
-                                    <div className="p-3 text-sm text-gray-400 hover:bg-violet-50 transition-colors text-center italic">
-                                        Nenhuma nova mensagem da administração.
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <Link href="/regras" className="p-2 hover:bg-violet-500 rounded-full transition-colors flex flex-col items-center" title="Regras de Utilização da Quadra">
-                            <BookOpen className="w-5 h-5" />
-                        </Link>
-                        <Link href="/profile" className="p-2 hover:bg-violet-500 rounded-full transition-colors flex flex-col items-center" title="Perfil">
-                            <User className="w-5 h-5" />
-                        </Link>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content - Daily Calendar View */}
-            <div className="flex-1 max-w-4xl mx-auto w-full p-4 flex flex-col">
-
+        <>
+            <div className="flex-1 max-w-4xl mx-auto w-full p-4 flex flex-col pb-24">
                 {/* Admin Area: Aprovações Pendentes */}
                 {currentUser && (currentUser.cargo === 'Síndico Geral' || currentUser.cargo === 'Subsíndico' || currentUser.cargo === 'SysAdmin') && pendingUsers.filter(p => currentUser.cargo === 'SysAdmin' || (p.cargo !== 'SysAdmin' && p.cargo !== 'Síndico Geral')).length > 0 && (
                     <div className="mb-6 bg-white rounded-xl border border-violet-200 shadow-sm overflow-hidden">
@@ -424,77 +376,79 @@ export default function DashboardPage() {
             </nav>
 
             {/* Modal Nova Reserva */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-                        <div className="bg-violet-600 p-4 flex items-center justify-between text-white">
-                            <h3 className="font-bold text-lg">Confirmação de Reserva</h3>
-                            <button onClick={() => { setIsModalOpen(false); setSelectedSlot(null); }} className="text-violet-100 hover:text-white">
-                                <X className="w-6 h-6" />
-                            </button>
-                        </div>
+            {
+                isModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+                        <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                            <div className="bg-violet-600 p-4 flex items-center justify-between text-white">
+                                <h3 className="font-bold text-lg">Confirmação de Reserva</h3>
+                                <button onClick={() => { setIsModalOpen(false); setSelectedSlot(null); }} className="text-violet-100 hover:text-white">
+                                    <X className="w-6 h-6" />
+                                </button>
+                            </div>
 
-                        <form onSubmit={confirmReservation} className="p-6 space-y-6">
-                            <div className="bg-violet-50 p-4 rounded-xl border border-violet-100">
-                                {selectedSlot && (
-                                    <div className="mb-4 p-3 bg-white rounded-lg border border-violet-200 text-center">
-                                        <p className="text-sm text-gray-500">Horário Escolhido</p>
-                                        <p className="font-bold text-violet-700 text-lg">{selectedSlot.time}</p>
+                            <form onSubmit={confirmReservation} className="p-6 space-y-6">
+                                <div className="bg-violet-50 p-4 rounded-xl border border-violet-100">
+                                    {selectedSlot && (
+                                        <div className="mb-4 p-3 bg-white rounded-lg border border-violet-200 text-center">
+                                            <p className="text-sm text-gray-500">Horário Escolhido</p>
+                                            <p className="font-bold text-violet-700 text-lg">{selectedSlot.time}</p>
+                                        </div>
+                                    )}
+                                    <p className="font-semibold text-gray-800 mb-3 text-sm">Antes de confirmar: Ao reservar, você concorda que:</p>
+                                    <ul className="space-y-3 text-sm text-gray-700">
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-lg leading-none">👟</span>
+                                            <span>Usará tênis adequado e não entrará com bike/skate/patins.</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-lg leading-none">🔇</span>
+                                            <span>Respeitará a lei do silêncio.</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-lg leading-none">🌧️</span>
+                                            <span>A reserva será cancelada em caso de chuva.</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-lg leading-none">🧹</span>
+                                            <span>Recolherá seu lixo ao sair.</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div className="flex items-start">
+                                    <div className="flex items-center h-5">
+                                        <input
+                                            id="terms"
+                                            type="checkbox"
+                                            required
+                                            checked={agreed}
+                                            onChange={(e) => setAgreed(e.target.checked)}
+                                            className="w-5 h-5 text-violet-600 border-gray-300 rounded focus:ring-violet-500"
+                                        />
                                     </div>
-                                )}
-                                <p className="font-semibold text-gray-800 mb-3 text-sm">Antes de confirmar: Ao reservar, você concorda que:</p>
-                                <ul className="space-y-3 text-sm text-gray-700">
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-lg leading-none">👟</span>
-                                        <span>Usará tênis adequado e não entrará com bike/skate/patins.</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-lg leading-none">🔇</span>
-                                        <span>Respeitará a lei do silêncio.</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-lg leading-none">🌧️</span>
-                                        <span>A reserva será cancelada em caso de chuva.</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <span className="text-lg leading-none">🧹</span>
-                                        <span>Recolherá seu lixo ao sair.</span>
-                                    </li>
-                                </ul>
-                            </div>
-
-                            <div className="flex items-start">
-                                <div className="flex items-center h-5">
-                                    <input
-                                        id="terms"
-                                        type="checkbox"
-                                        required
-                                        checked={agreed}
-                                        onChange={(e) => setAgreed(e.target.checked)}
-                                        className="w-5 h-5 text-violet-600 border-gray-300 rounded focus:ring-violet-500"
-                                    />
+                                    <div className="ml-3 text-sm">
+                                        <label htmlFor="terms" className="font-medium text-gray-700">
+                                            Li e concordo com as <a href="/regras" className="text-violet-600 underline" target="_blank">Regras Completas</a>.
+                                        </label>
+                                    </div>
                                 </div>
-                                <div className="ml-3 text-sm">
-                                    <label htmlFor="terms" className="font-medium text-gray-700">
-                                        Li e concordo com as <Link href="/regras" className="text-violet-600 underline" target="_blank">Regras Completas</Link>.
-                                    </label>
-                                </div>
-                            </div>
 
-                            <button
-                                type="submit"
-                                disabled={!agreed}
-                                className={`w-full py-3 rounded-xl font-bold text-white transition-all ${agreed
-                                    ? 'bg-violet-600 hover:bg-violet-700 shadow-md cursor-pointer'
-                                    : 'bg-gray-300 cursor-not-allowed'
-                                    }`}
-                            >
-                                Confirmar Reserva
-                            </button>
-                        </form>
+                                <button
+                                    type="submit"
+                                    disabled={!agreed}
+                                    className={`w-full py-3 rounded-xl font-bold text-white transition-all ${agreed
+                                        ? 'bg-violet-600 hover:bg-violet-700 shadow-md cursor-pointer'
+                                        : 'bg-gray-300 cursor-not-allowed'
+                                        }`}
+                                >
+                                    Confirmar Reserva
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </main>
+                )
+            }
+        </>
     );
 }

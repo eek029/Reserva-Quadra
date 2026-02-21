@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Header from '@/components/Header';
 
 export default function DashboardLayout({
     children,
@@ -50,5 +51,10 @@ export default function DashboardLayout({
         );
     }
 
-    return <>{children}</>;
+    return (
+        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+            <Header />
+            {children}
+        </div>
+    );
 }

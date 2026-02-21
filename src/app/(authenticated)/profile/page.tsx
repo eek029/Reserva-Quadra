@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, User as UserIcon, ShieldAlert } from 'lucide-react';
-import Link from 'next/link';
+import { User as UserIcon, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface Usuario {
@@ -154,15 +153,8 @@ export default function ProfilePage() {
     }
 
     return (
-        <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <main className="min-h-screen py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto">
-                <div className="flex items-center mb-8">
-                    <Link href="/dashboard" className="flex items-center text-violet-600 hover:text-violet-500 font-medium transition-colors">
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Voltar para o Dashboard
-                    </Link>
-                </div>
-
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
                     <div className="bg-violet-600 px-8 py-8 text-white flex flex-col items-center">
                         <div className="relative w-24 h-24 mb-4 rounded-full overflow-hidden shadow-md border-4 border-white bg-white flex items-center justify-center text-violet-600">
