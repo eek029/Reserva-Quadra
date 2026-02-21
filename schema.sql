@@ -152,3 +152,31 @@ BEGIN
     WHERE u.id = target_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 5. Profile Update Requests
+CREATE TABLE public.profile_update_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    novo_nome_completo TEXT,
+    novo_cpf_encrypted BYTEA,
+    nova_foto_url TEXT,
+    status TEXT NOT NULL DEFAULT 'pendente',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.profile_update_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuários podem criar suas próprias solicitações" ON public.profile_update_requests
+    FOR INSERT WITH CHECK (auth.uid() = usuario_id);
+
+CREATE POLICY "Usuários podem ver suas próprias solicitações" ON public.profile_update_requests
+    FOR SELECT USING (auth.uid() = usuario_id);
+
+CREATE POLICY "Síndicos e SysAdmin podem gerenciar solicitações" ON public.profile_update_requests
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.usuarios u
+            WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'Subsíndico', 'SysAdmin')
+        )
+    );
+

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { BookOpen, User, Calendar as CalendarIcon, Plus, List, X, ChevronLeft, ChevronRight, Check, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { BookOpen, User, Calendar as CalendarIcon, List, X, ChevronLeft, ChevronRight, Check, ShieldCheck, CheckCircle2, Bell } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 
 // Define types to replace 'any'
@@ -256,15 +257,39 @@ export default function DashboardPage() {
             <header className="bg-violet-600 text-white p-4 shadow-md sticky top-0 z-10">
                 <div className="max-w-4xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-violet-600 font-bold">
-                            CQ
+                        <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white">
+                            <Image
+                                src="/Complexo.jpeg"
+                                alt="Logo"
+                                fill
+                                className="object-cover"
+                            />
                         </div>
                         <h1 className="text-lg font-bold">Reserva Quadra</h1>
                     </div>
                     <div className="flex items-center gap-4">
-                        <button className="p-2 hover:bg-violet-500 rounded-full transition-colors flex flex-col items-center" title="Regras de Utilização da Quadra">
+                        <div className="relative group p-2 hover:bg-violet-500 rounded-full transition-colors cursor-pointer" title="Notificações">
+                            <Bell className="w-5 h-5" />
+                            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-violet-600"></span>
+                            {/* Dropdown Notificações */}
+                            <div className="absolute right-0 mt-3 w-72 bg-white rounded-xl shadow-xl border border-gray-100 hidden group-hover:block transition-all z-50 overflow-hidden">
+                                <div className="p-3 border-b border-gray-100 font-semibold text-sm text-gray-800 bg-gray-50">
+                                    Notificações
+                                </div>
+                                <div className="divide-y divide-gray-50 max-h-64 overflow-y-auto">
+                                    <div className="p-3 text-sm text-gray-600 hover:bg-violet-50 transition-colors flex items-start gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-violet-600 mt-1.5 flex-shrink-0"></div>
+                                        <p><strong>Lembrete:</strong> Faltam 15 min para sua reserva da Quadra Poliesportiva.</p>
+                                    </div>
+                                    <div className="p-3 text-sm text-gray-400 hover:bg-violet-50 transition-colors text-center italic">
+                                        Nenhuma nova mensagem da administração.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <Link href="/regras" className="p-2 hover:bg-violet-500 rounded-full transition-colors flex flex-col items-center" title="Regras de Utilização da Quadra">
                             <BookOpen className="w-5 h-5" />
-                        </button>
+                        </Link>
                         <Link href="/profile" className="p-2 hover:bg-violet-500 rounded-full transition-colors flex flex-col items-center" title="Perfil">
                             <User className="w-5 h-5" />
                         </Link>
@@ -387,18 +412,11 @@ export default function DashboardPage() {
             {/* Bottom Navigation */}
             <nav className="fixed bottom-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
                 <div className="max-w-4xl mx-auto flex justify-around">
-                    <button
-                        onClick={() => { setSelectedSlot(null); setIsModalOpen(true); }}
-                        className="flex-1 flex flex-col items-center py-3 text-violet-600 hover:bg-violet-50 transition-colors"
-                    >
-                        <Plus className="w-6 h-6 mb-1" />
-                        <span className="text-xs font-semibold">Nova Reserva</span>
-                    </button>
                     <button className="flex-1 flex flex-col items-center py-3 text-gray-500 hover:text-violet-600 hover:bg-violet-50 transition-colors">
                         <List className="w-6 h-6 mb-1" />
                         <span className="text-xs font-medium">Minhas Reservas</span>
                     </button>
-                    <button className="flex-1 flex flex-col items-center py-3 text-gray-500 hover:text-violet-600 hover:bg-violet-50 transition-colors">
+                    <button className="flex-1 flex flex-col items-center py-3 text-violet-600 border-t-2 border-violet-600 bg-violet-50 transition-colors">
                         <CalendarIcon className="w-6 h-6 mb-1" />
                         <span className="text-xs font-medium">Calendário</span>
                     </button>
@@ -458,7 +476,7 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="ml-3 text-sm">
                                     <label htmlFor="terms" className="font-medium text-gray-700">
-                                        Li e concordo com as <a href="#" className="text-violet-600 underline">Regras Completas</a>.
+                                        Li e concordo com as <Link href="/regras" className="text-violet-600 underline" target="_blank">Regras Completas</Link>.
                                     </label>
                                 </div>
                             </div>
