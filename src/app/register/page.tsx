@@ -28,7 +28,7 @@ export default function RegisterPage() {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
 
@@ -48,8 +48,8 @@ export default function RegisterPage() {
             if (authError) throw authError;
 
             setSuccess(true);
-        } catch (err: any) {
-            setError(err.message || 'Erro ao realizar cadastro.');
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'Erro ao realizar cadastro.');
         } finally {
             setLoading(false);
         }
