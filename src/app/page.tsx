@@ -1,8 +1,40 @@
-import { Apple, Chrome as Google } from 'lucide-react';
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Chrome as Google } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (authError) throw authError;
+
+      router.push('/dashboard');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro ao realizar login.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
@@ -27,7 +59,12 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <form className="mt-8 space-y-6">
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {error && (
+            <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm text-center">
+              {error}
+            </div>
+          )}
           <div className="space-y-4">
             <div>
               <label htmlFor="email-address" className="block text-sm font-medium text-gray-700">
@@ -39,6 +76,8 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                 placeholder="exemplo@email.com"
               />
@@ -54,6 +93,8 @@ export default function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="mt-1 appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
                   placeholder="••••••••"
                 />
@@ -84,9 +125,10 @@ export default function LoginPage() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Entrar na Conta
+              {loading ? 'Entrando...' : 'Entrar na Conta'}
             </button>
           </div>
         </form>
@@ -100,14 +142,10 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <button className="w-full inline-flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
             <Google className="w-5 h-5 mr-2 text-red-500" />
             Google
-          </button>
-          <button className="w-full inline-flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-            <Apple className="w-5 h-5 mr-2" />
-            Apple
           </button>
         </div>
 
