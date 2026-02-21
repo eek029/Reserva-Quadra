@@ -48,16 +48,24 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Moradores podem ver seu próprio perfil" ON public.usuarios
     FOR SELECT USING (auth.uid() = id);
 
-CREATE POLICY "Síndico Geral e Subsíndico podem ver todos" ON public.usuarios
+CREATE POLICY "Síndico Geral, Subsíndico e SysAdmin podem ver todos" ON public.usuarios
     FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM public.usuarios u
-            WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'Subsíndico')
+            WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'Subsíndico', 'SysAdmin')
         )
     );
 
 CREATE POLICY "Usuários podem atualizar seu próprio perfil" ON public.usuarios
     FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "SysAdmin pode atualizar e gerenciar qualquer perfil" ON public.usuarios
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.usuarios u
+            WHERE u.id = auth.uid() AND u.cargo = 'SysAdmin'
+        )
+    );
 
 -- Policies for reservas
 CREATE POLICY "Todos podem ver reservas (para calendário)" ON public.reservas
@@ -69,20 +77,20 @@ CREATE POLICY "Usuários podem criar suas próprias reservas" ON public.reservas
 CREATE POLICY "Usuários podem editar/cancelar suas próprias reservas" ON public.reservas
     FOR UPDATE USING (auth.uid() = usuario_id);
 
-CREATE POLICY "Porteiros e Síndicos podem gerenciar todas as reservas" ON public.reservas
+CREATE POLICY "Porteiros, Síndicos e SysAdmin podem gerenciar todas as reservas" ON public.reservas
     FOR ALL USING (
         EXISTS (
             SELECT 1 FROM public.usuarios u
-            WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'Subsíndico', 'Porteiro')
+            WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'Subsíndico', 'Porteiro', 'SysAdmin')
         )
     );
 
 -- Policies for audit_logs
-CREATE POLICY "Somente Síndico Geral pode ver audit_logs" ON public.audit_logs
+CREATE POLICY "Somente Síndico Geral e SysAdmin podem ver audit_logs" ON public.audit_logs
     FOR SELECT USING (
         EXISTS (
             SELECT 1 FROM public.usuarios u
-            WHERE u.id = auth.uid() AND u.cargo = 'Síndico Geral'
+            WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'SysAdmin')
         )
     );
     

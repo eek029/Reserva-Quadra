@@ -60,6 +60,7 @@ export default function DashboardPage() {
     const [currentUser, setCurrentUser] = useState<Usuario | null>(null);
     const [sessionUser, setSessionUser] = useState<{ id: string } | null>(null);
     const [pendingUsers, setPendingUsers] = useState<Usuario[]>([]);
+    const [sindicosList, setSindicosList] = useState<Usuario[]>([]);
 
     useEffect(() => {
         const loadInitialData = async () => {
@@ -77,13 +78,25 @@ export default function DashboardPage() {
                         setCurrentUser(userData);
 
                         // Check if admin to fetch pending approvals
-                        if (userData && (userData.cargo === 'Síndico Geral' || userData.cargo === 'Subsíndico')) {
+                        if (userData && (userData.cargo === 'Síndico Geral' || userData.cargo === 'Subsíndico' || userData.cargo === 'SysAdmin')) {
                             const { data: pending } = await supabase
                                 .from('usuarios')
                                 .select('*')
                                 .eq('status', 'pendente');
                             if (pending) {
                                 setPendingUsers(pending);
+                            }
+
+                            // Specific to SysAdmin: fetch active Síndico Geral to allow revoking
+                            if (userData.cargo === 'SysAdmin') {
+                                const { data: sindicos } = await supabase
+                                    .from('usuarios')
+                                    .select('*')
+                                    .eq('cargo', 'Síndico Geral')
+                                    .eq('status', 'aprovado');
+                                if (sindicos) {
+                                    setSindicosList(sindicos);
+                                }
                             }
                         }
                     } else {
@@ -95,12 +108,21 @@ export default function DashboardPage() {
                             .single();
                         if (fallbackUser) {
                             setCurrentUser(fallbackUser);
-                            if (fallbackUser.cargo === 'Síndico Geral' || fallbackUser.cargo === 'Subsíndico') {
+                            if (fallbackUser.cargo === 'Síndico Geral' || fallbackUser.cargo === 'Subsíndico' || fallbackUser.cargo === 'SysAdmin') {
                                 const { data: pending } = await supabase
                                     .from('usuarios')
                                     .select('*')
                                     .eq('status', 'pendente');
                                 if (pending) setPendingUsers(pending);
+
+                                if (fallbackUser.cargo === 'SysAdmin') {
+                                    const { data: sindicos } = await supabase
+                                        .from('usuarios')
+                                        .select('*')
+                                        .eq('cargo', 'Síndico Geral')
+                                        .eq('status', 'aprovado');
+                                    if (sindicos) setSindicosList(sindicos);
+                                }
                             }
                         }
                     }
@@ -254,27 +276,60 @@ export default function DashboardPage() {
             <div className="flex-1 max-w-4xl mx-auto w-full p-4 flex flex-col">
 
                 {/* Admin Area: Aprovações Pendentes */}
-                {currentUser && (currentUser.cargo === 'Síndico Geral' || currentUser.cargo === 'Subsíndico') && pendingUsers.length > 0 && (
+                {currentUser && (currentUser.cargo === 'Síndico Geral' || currentUser.cargo === 'Subsíndico' || currentUser.cargo === 'SysAdmin') && pendingUsers.filter(p => currentUser.cargo === 'SysAdmin' || (p.cargo !== 'SysAdmin' && p.cargo !== 'Síndico Geral')).length > 0 && (
                     <div className="mb-6 bg-white rounded-xl border border-violet-200 shadow-sm overflow-hidden">
                         <div className="bg-violet-50 px-4 py-3 border-b border-violet-100 flex items-center justify-between">
                             <h2 className="text-violet-800 font-semibold flex items-center text-sm">
                                 <ShieldCheck className="w-5 h-5 mr-2" />
-                                Cadastros Pendentes ({pendingUsers.length})
+                                Cadastros Pendentes ({pendingUsers.filter(p => currentUser.cargo === 'SysAdmin' || (p.cargo !== 'SysAdmin' && p.cargo !== 'Síndico Geral')).length})
                             </h2>
                         </div>
                         <div className="divide-y divide-gray-100">
-                            {pendingUsers.map(pending => (
+                            {pendingUsers.filter(p => currentUser.cargo === 'SysAdmin' || (p.cargo !== 'SysAdmin' && p.cargo !== 'Síndico Geral')).map(pending => (
                                 <div key={pending.id} className="p-4 flex items-center justify-between">
                                     <div>
-                                        <p className="font-medium text-gray-900 text-sm">{pending.nome_completo || pending.nome}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-medium text-gray-900 text-sm">{pending.nome_completo || pending.nome}</p>
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">{pending.cargo}</span>
+                                        </div>
                                         <p className="text-xs text-gray-500">Torre {pending.torre}, Apto {pending.apartamento || pending.apto}</p>
                                     </div>
                                     <div className="flex gap-2">
-                                        <button className="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors">
+                                        <button className="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors" title="Aprovar">
                                             <CheckCircle2 className="w-5 h-5" />
                                         </button>
-                                        <button className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors">
+                                        <button className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Rejeitar">
                                             <X className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* SysAdmin Area: Gerenciar Síndicos */}
+                {currentUser && currentUser.cargo === 'SysAdmin' && sindicosList.length > 0 && (
+                    <div className="mb-6 bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
+                        <div className="bg-red-50 px-4 py-3 border-b border-red-100 flex items-center justify-between">
+                            <h2 className="text-red-800 font-semibold flex items-center text-sm">
+                                <ShieldCheck className="w-5 h-5 mr-2" />
+                                Gerenciamento de Síndico Geral
+                            </h2>
+                        </div>
+                        <div className="divide-y divide-gray-100">
+                            {sindicosList.map(sindico => (
+                                <div key={sindico.id} className="p-4 flex items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-medium text-gray-900 text-sm">{sindico.nome_completo || sindico.nome}</p>
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">{sindico.cargo}</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500">Torre {sindico.torre}, Apto {sindico.apartamento || sindico.apto}</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200">
+                                            Revogar Acesso
                                         </button>
                                     </div>
                                 </div>
