@@ -1,16 +1,20 @@
 import { Apple, Chrome as Google } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
         <div className="flex flex-col items-center">
-          <div className="relative w-16 h-16 mb-4">
-            {/* Logo Placeholder - Refers to img provided in root or generic */}
-            <div className="w-full h-full bg-violet-600 rounded-full flex items-center justify-center overflow-hidden">
-              <span className="text-white font-bold text-2xl">CQ</span>
-            </div>
+          <div className="relative w-24 h-24 mb-4 rounded-full overflow-hidden shadow-md">
+            <Image
+              src="/Complexo.jpeg"
+              alt="Logo do Complexo Júlio Prestes"
+              fill
+              className="object-cover"
+              priority
+            />
           </div>
           <h1 className="text-2xl font-bold text-center text-gray-900">
             Reserva Quadra Complexo Júlio Prestes

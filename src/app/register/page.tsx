@@ -3,11 +3,19 @@
 import { useState } from 'react';
 import { ArrowLeft, Camera, Upload } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
 
 export default function RegisterPage() {
     const [cargo, setCargo] = useState('Morador');
     const [torre, setTorre] = useState('');
     const [previewImage, setPreviewImage] = useState<string | null>(null);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState(false);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -17,6 +25,33 @@ export default function RegisterPage() {
                 setPreviewImage(reader.result as string);
             };
             reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError(null);
+
+        if (password !== confirmPassword) {
+            setError('As senhas não coincidem.');
+            return;
+        }
+
+        setLoading(true);
+
+        try {
+            const { error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+            });
+
+            if (authError) throw authError;
+
+            setSuccess(true);
+        } catch (err: any) {
+            setError(err.message || 'Erro ao realizar cadastro.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -31,12 +66,31 @@ export default function RegisterPage() {
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-                    <div className="bg-violet-600 px-8 py-6 text-white text-center">
+                    <div className="bg-violet-600 px-8 py-8 text-white text-center flex flex-col items-center">
+                        <div className="relative w-20 h-20 mb-4 rounded-full overflow-hidden shadow-md border-2 border-white">
+                            <Image
+                                src="/Complexo.jpeg"
+                                alt="Logo do Complexo"
+                                fill
+                                className="object-cover"
+                                priority
+                            />
+                        </div>
                         <h1 className="text-2xl font-bold">Cadastro de Usuário</h1>
                         <p className="text-violet-100 mt-1">Preencha seus dados para acessar o sistema.</p>
                     </div>
 
-                    <form className="p-8 space-y-8">
+                    <form onSubmit={handleSubmit} className="p-8 space-y-8">
+                        {error && (
+                            <div className="bg-red-50 text-red-600 p-4 rounded-lg text-sm text-center">
+                                {error}
+                            </div>
+                        )}
+                        {success && (
+                            <div className="bg-green-50 text-green-600 p-4 rounded-lg text-sm text-center">
+                                Cadastro realizado com sucesso! Verifique seu email ou aguarde a aprovação da administração.
+                            </div>
+                        )}
                         {/* Foto Upload Section */}
                         <div className="flex flex-col items-center space-y-4">
                             <div className="relative w-32 h-32 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden group">
@@ -55,6 +109,49 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Dados de Acesso */}
+                            <div className="md:col-span-2">
+                                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-2">Dados de Acesso</h3>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700">E-mail</label>
+                                <input
+                                    type="email"
+                                    required
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
+                                    placeholder="seu@email.com"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Senha</label>
+                                <input
+                                    type="password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
+                                    placeholder="••••••••"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Confirmar Senha</label>
+                                <input
+                                    type="password"
+                                    required
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
+                                    placeholder="••••••••"
+                                />
+                            </div>
+
+                            {/* Dados Pessoais */}
+                            <div className="md:col-span-2 mt-4">
+                                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2 mb-2">Dados Pessoais</h3>
+                            </div>
+
                             {/* Nome Completo */}
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700">Nome Completo</label>
@@ -178,9 +275,10 @@ export default function RegisterPage() {
                         <div className="pt-4">
                             <button
                                 type="submit"
-                                className="w-full flex justify-center py-4 px-4 border border-transparent text-base font-bold rounded-lg text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-all shadow-lg hover:shadow-violet-200"
+                                disabled={loading}
+                                className="w-full flex justify-center py-4 px-4 border border-transparent text-base font-bold rounded-lg text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 transition-all shadow-lg hover:shadow-violet-200 disabled:opacity-70 disabled:cursor-not-allowed"
                             >
-                                Finalizar Cadastro
+                                {loading ? 'Cadastrando...' : 'Finalizar Cadastro'}
                             </button>
                         </div>
                     </form>
