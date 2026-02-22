@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Chrome as Google } from 'lucide-react';
+import { Chrome as Google, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -49,8 +50,11 @@ export default function LoginPage() {
             />
           </div>
           <h1 className="text-2xl font-bold text-center text-gray-900">
-            Reserva Quadra Complexo Júlio Prestes
+            Reserva Quadra
           </h1>
+          <p className="text-sm font-bold text-center text-gray-600">
+            Complexo Júlio Prestes
+          </p>
           <p className="mt-2 text-sm text-gray-600 text-center">
             Agende seu horário, gerencie reservas e receba notificações.
           </p>
@@ -90,14 +94,21 @@ export default function LoginPage() {
                 <input
                   id="password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
+                  className="mt-1 appearance-none relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-violet-500 focus:border-violet-500 sm:text-sm pr-10"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 mt-1"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
           </div>
@@ -116,9 +127,9 @@ export default function LoginPage() {
             </div>
 
             <div className="text-sm">
-              <a href="#" className="font-medium text-violet-600 hover:text-violet-500">
+              <Link href="/forgot-password" className="font-medium text-violet-600 hover:text-violet-500">
                 Esqueceu a senha?
-              </a>
+              </Link>
             </div>
           </div>
 

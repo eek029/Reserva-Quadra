@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Camera, Upload } from 'lucide-react';
+import { ArrowLeft, Camera, Upload, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
@@ -13,9 +13,51 @@ export default function RegisterPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [nomeCompleto, setNomeCompleto] = useState('');
+    const [rg, setRg] = useState('');
+    const [cpf, setCpf] = useState('');
+    const [dataNascimento, setDataNascimento] = useState('');
+    const [telefone, setTelefone] = useState('');
+    const [apartamento, setApartamento] = useState('');
+    const [bloco, setBloco] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // --- Masks ---
+    const maskCpf = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d)/, '$1.$2')
+            .replace(/(\d{3})(\d{1,2})$/, '$1-$2')
+            .slice(0, 14);
+    };
+
+    const maskPhone = (value: string) => {
+        return value
+            .replace(/\D/g, '')
+            .replace(/(\d{2})(\d)/, '($1) $2')
+            .replace(/(\d{5})(\d{1,4})$/, '$1-$2')
+            .slice(0, 15);
+    };
+
+    const validateCpf = (cpf: string): boolean => {
+        const nums = cpf.replace(/\D/g, '');
+        if (nums.length !== 11 || /^(\d)\1{10}$/.test(nums)) return false;
+        let sum = 0;
+        for (let i = 0; i < 9; i++) sum += parseInt(nums[i]) * (10 - i);
+        let rest = (sum * 10) % 11;
+        if (rest === 10 || rest === 11) rest = 0;
+        if (rest !== parseInt(nums[9])) return false;
+        sum = 0;
+        for (let i = 0; i < 10; i++) sum += parseInt(nums[i]) * (11 - i);
+        rest = (sum * 10) % 11;
+        if (rest === 10 || rest === 11) rest = 0;
+        return rest === parseInt(nums[10]);
+    };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -37,15 +79,52 @@ export default function RegisterPage() {
             return;
         }
 
+        if (!validateCpf(cpf)) {
+            setError('CPF inválido. Por favor, verifique o número digitado.');
+            return;
+        }
+
+        const phoneDigits = telefone.replace(/\D/g, '');
+        if (phoneDigits.length < 10) {
+            setError('Celular incompleto. Por favor, verifique o número.');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            const { error: authError } = await supabase.auth.signUp({
+            const { data, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
             });
 
             if (authError) throw authError;
+
+            // Extra checks to make sure we have the user
+            if (!data.user?.id) throw new Error("Falha ao criar usuário na autenticação.");
+
+            // Gravar na API
+            const response = await fetch(`/api/usuarios?auth_id=${data.user.id}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nome_completo: nomeCompleto,
+                    rg: rg || 'Não informado', // Backend requires a string, can't be null
+                    cpf: cpf,
+                    data_nascimento: dataNascimento,
+                    telefone: telefone,
+                    apartamento: apartamento,
+                    torre: torre,
+                    bloco: bloco,
+                    foto_url: previewImage || null,
+                    cargo: cargo
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Erro ao salvar os dados complementares.');
+            }
 
             setSuccess(true);
         } catch (err: unknown) {
@@ -87,8 +166,8 @@ export default function RegisterPage() {
                             </div>
                         )}
                         {success && (
-                            <div className="bg-green-50 text-green-600 p-4 rounded-lg text-sm text-center">
-                                Cadastro realizado com sucesso! Verifique seu email ou aguarde a aprovação da administração.
+                            <div className="bg-green-50 text-green-600 p-4 rounded-lg text-sm text-center font-semibold">
+                                Cadastro realizado com sucesso! Aguarde a aprovação da administração.
                             </div>
                         )}
                         {/* Foto Upload Section */}
@@ -126,25 +205,43 @@ export default function RegisterPage() {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Senha</label>
-                                <input
-                                    type="password"
-                                    required
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
-                                    placeholder="••••••••"
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm pr-10"
+                                        placeholder="••••••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 mt-1"
+                                    >
+                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Confirmar Senha</label>
-                                <input
-                                    type="password"
-                                    required
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
-                                    placeholder="••••••••"
-                                />
+                                <div className="relative">
+                                    <input
+                                        type={showConfirmPassword ? "text" : "password"}
+                                        required
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm pr-10"
+                                        placeholder="••••••••"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 mt-1"
+                                    >
+                                        {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Dados Pessoais */}
@@ -158,6 +255,8 @@ export default function RegisterPage() {
                                 <input
                                     type="text"
                                     required
+                                    value={nomeCompleto}
+                                    onChange={(e) => setNomeCompleto(e.target.value)}
                                     className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
                                     placeholder="Seu nome completo"
                                 />
@@ -165,10 +264,11 @@ export default function RegisterPage() {
 
                             {/* RG & CPF */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700">RG</label>
+                                <label className="block text-sm font-medium text-gray-700">RG (Opcional)</label>
                                 <input
                                     type="text"
-                                    required
+                                    value={rg}
+                                    onChange={(e) => setRg(e.target.value)}
                                     className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
                                     placeholder="00.000.000-0"
                                 />
@@ -178,8 +278,11 @@ export default function RegisterPage() {
                                 <input
                                     type="text"
                                     required
+                                    value={cpf}
+                                    onChange={(e) => setCpf(maskCpf(e.target.value))}
                                     className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
                                     placeholder="000.000.000-00"
+                                    maxLength={14}
                                 />
                             </div>
 
@@ -189,6 +292,8 @@ export default function RegisterPage() {
                                 <input
                                     type="date"
                                     required
+                                    value={dataNascimento}
+                                    onChange={(e) => setDataNascimento(e.target.value)}
                                     className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
                                 />
                             </div>
@@ -197,8 +302,11 @@ export default function RegisterPage() {
                                 <input
                                     type="tel"
                                     required
+                                    value={telefone}
+                                    onChange={(e) => setTelefone(maskPhone(e.target.value))}
                                     className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
                                     placeholder="(11) 90000-0000"
+                                    maxLength={15}
                                 />
                             </div>
 
@@ -223,35 +331,37 @@ export default function RegisterPage() {
                             </div>
 
                             {/* Conditional Tower and Apt Section */}
+                            {/* Torre is always shown - for Porteiro too */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Torre</label>
+                                <select
+                                    required
+                                    value={torre}
+                                    onChange={(e) => setTorre(e.target.value)}
+                                    className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
+                                >
+                                    <option value="">Selecione a Torre</option>
+                                    {[1, 2, 3, 4, 5].map((num) => (
+                                        <option key={num} value={num}>Torre {num}</option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {cargo !== 'Porteiro' && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Torre</label>
-                                        <select
-                                            required
-                                            value={torre}
-                                            onChange={(e) => setTorre(e.target.value)}
-                                            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
-                                        >
-                                            <option value="">Selecione a Torre</option>
-                                            {[1, 2, 3, 4, 5].map((num) => (
-                                                <option key={num} value={num}>Torre {num}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Apartamento</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
-                                            placeholder="00"
-                                        />
-                                    </div>
-                                </>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Apartamento</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={apartamento}
+                                        onChange={(e) => setApartamento(e.target.value)}
+                                        className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
+                                        placeholder="00"
+                                    />
+                                </div>
                             )}
 
-                            {/* Conditional Bloco for Torre 5 */}
+                            {/* Conditional Bloco for Torre 5 (non-Porteiro) */}
                             {cargo !== 'Porteiro' && torre === '5' && (
                                 <div className="md:col-span-2 animate-in fade-in slide-in-from-top-2 duration-300">
                                     <label className="block text-sm font-medium text-gray-700">Bloco (Torre 5)</label>
@@ -262,6 +372,8 @@ export default function RegisterPage() {
                                                     type="radio"
                                                     name="bloco"
                                                     value={b}
+                                                    checked={bloco === b}
+                                                    onChange={(e) => setBloco(e.target.value)}
                                                     className="form-radio h-4 w-4 text-violet-600 border-gray-300 focus:ring-violet-500"
                                                 />
                                                 <span className="ml-2 text-sm text-gray-700">Bloco {b}</span>

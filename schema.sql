@@ -71,8 +71,9 @@ CREATE POLICY "SysAdmin pode atualizar e gerenciar qualquer perfil" ON public.us
 CREATE POLICY "Todos podem ver reservas (para calendário)" ON public.reservas
     FOR SELECT USING (true);
 
-CREATE POLICY "Usuários podem criar suas próprias reservas" ON public.reservas
-    FOR INSERT WITH CHECK (auth.uid() = usuario_id);
+CREATE POLICY "Permitir inserção de reservas" ON public.reservas
+FOR INSERT TO authenticated
+WITH CHECK (auth.uid() = usuario_id);
 
 CREATE POLICY "Usuários podem editar/cancelar suas próprias reservas" ON public.reservas
     FOR UPDATE USING (auth.uid() = usuario_id);
@@ -180,3 +181,80 @@ CREATE POLICY "Síndicos e SysAdmin podem gerenciar solicitações" ON public.pr
         )
     );
 
+-- 6. Tabela Notificacoes
+CREATE TABLE IF NOT EXISTS public.notificacoes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    mensagem TEXT NOT NULL,
+    destinatario_id UUID REFERENCES public.usuarios(id) ON DELETE CASCADE, -- NULL means "todos"
+    lida BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- 7. Colunas de Auditoria de Chaves e Ocorrencia na tabela Reservas
+ALTER TABLE public.reservas 
+ADD COLUMN IF NOT EXISTS status_chave TEXT DEFAULT 'aguardando' CHECK (status_chave IN ('aguardando', 'em_uso', 'concluida')),
+ADD COLUMN IF NOT EXISTS retirada_em TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS entregue_por UUID REFERENCES public.usuarios(id),
+ADD COLUMN IF NOT EXISTS devolvida_em TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS recebida_por UUID REFERENCES public.usuarios(id),
+ADD COLUMN IF NOT EXISTS ocorrencia_texto TEXT,
+ADD COLUMN IF NOT EXISTS turno_registro TEXT CHECK (turno_registro IN ('Turno Dia', 'Turno Noite'));
+
+-- 8. Ativacao RLS Adicional
+ALTER TABLE public.notificacoes ENABLE ROW LEVEL SECURITY;
+
+-- 9. Novas Policies e Ajustes de Segurança (Aplicados em Produção)
+-- Permitir select publico (usuários necessitam apenas estar logados para buscar-- Policies: USUARIOS
+CREATE POLICY "Permitir SELECT para usuarios" ON public.usuarios
+FOR SELECT USING (true);
+
+-- Notificações
+CREATE POLICY "Usuarios leem notificacoes para eles ou para todos" ON public.notificacoes
+FOR SELECT USING (
+    auth.uid() IS NOT NULL AND (destinatario_id IS NULL OR destinatario_id = auth.uid())
+);
+
+CREATE POLICY "Usuarios podem marcar como lido" ON public.notificacoes
+FOR UPDATE USING (
+    destinatario_id = auth.uid() OR destinatario_id IS NULL
+);
+
+CREATE POLICY "Somente Admin e Sindico criam notificacoes" ON public.notificacoes
+FOR INSERT WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.usuarios admin
+        WHERE admin.id = auth.uid() AND admin.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico')
+    )
+);
+
+
+
+-- 10. Tabela: solicitacoes_perfil (fila de aprovação de dados sensíveis)
+CREATE TABLE IF NOT EXISTS public.solicitacoes_perfil (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    novo_nome TEXT,
+    novo_cpf TEXT,
+    nova_foto_url TEXT,
+    status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'aprovado', 'rejeitado')),
+    revisado_por UUID REFERENCES public.usuarios(id),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.solicitacoes_perfil ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Usuario insere propria solicitacao" ON public.solicitacoes_perfil
+FOR INSERT TO authenticated WITH CHECK (auth.uid() = usuario_id);
+
+CREATE POLICY "Usuario le sua solicitacao" ON public.solicitacoes_perfil
+FOR SELECT USING (auth.uid() = usuario_id);
+
+CREATE POLICY "Admin le todas as solicitacoes" ON public.solicitacoes_perfil
+FOR SELECT USING (
+    EXISTS (SELECT 1 FROM public.usuarios u WHERE u.id = auth.uid() AND u.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico'))
+);
+
+CREATE POLICY "Admin atualiza solicitacao" ON public.solicitacoes_perfil
+FOR UPDATE USING (
+    EXISTS (SELECT 1 FROM public.usuarios u WHERE u.id = auth.uid() AND u.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico'))
+);

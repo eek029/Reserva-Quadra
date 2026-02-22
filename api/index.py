@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException, Depends, Header
 from pydantic import BaseModel
 from supabase import create_client, Client
 from dotenv import load_dotenv
+import pytz
 
 load_dotenv()
 
@@ -46,6 +47,14 @@ class ReservaBase(BaseModel):
 
 class ReservaCreate(ReservaBase):
     usuario_id: str
+
+class NotificacaoCreate(BaseModel):
+    mensagem: str
+    destinatario_id: Optional[str] = None
+
+class ChaveAcao(BaseModel):
+    acao: str # 'entregar' ou 'receber'
+    ocorrencia_texto: Optional[str] = None
 
 # --- Helper Functions ---
 
@@ -120,9 +129,9 @@ async def create_usuario(user: UsuarioCreate, auth_id: str):
 
 # --- Reservas CRUD ---
 
-@app.post("/api/reservas")
-async def create_reserva(reserva: ReservaCreate):
-    """Cria reserva respeitando as regras de negócio."""
+@app.post("/api/reservas/validate")
+async def validate_reserva(reserva: ReservaCreate):
+    """Valida as regras de negócio antes do frontend inserir."""
     
     # 1. Validação de horário de funcionamento (09h às 22h)
     validate_reservation_time(reserva.hora_inicio, reserva.hora_fim)
@@ -164,9 +173,8 @@ async def create_reserva(reserva: ReservaCreate):
         if (reserva.hora_inicio < r['hora_fim']) and (reserva.hora_fim > r['hora_inicio']):
             raise HTTPException(status_code=400, detail="Já existe uma reserva para este horário.")
 
-    # 5. Inserir reserva
-    result = supabase.table("reservas").insert(reserva.dict()).execute()
-    return result.data[0]
+    # 5. Validação com sucesso
+    return {"status": "valid"}
 
 @app.get("/api/reservas")
 async def list_reservas(data: Optional[str] = None):
@@ -180,3 +188,87 @@ async def list_reservas(data: Optional[str] = None):
 async def cancel_reserva(reserva_id: str):
     result = supabase.table("reservas").update({"status": "cancelada"}).eq("id", reserva_id).execute()
     return {"message": "Reserva cancelada com sucesso"}
+
+# --- Historico de Chaves / Turno ---
+@app.patch("/api/reservas/{reserva_id}/chave")
+async def update_chave_reserva(reserva_id: str, payload: ChaveAcao, requester_id: str = Header(...)):
+    """Gerencia entrega e recebimento de chaves + auditoria."""
+    
+    # 1. Verifica admin/porteiro
+    admin_check = supabase.table("usuarios").select("cargo").eq("id", requester_id).single().execute()
+    if not admin_check.data or admin_check.data["cargo"] not in ['SysAdmin', 'Síndico Geral', 'Subsíndico', 'Porteiro']:
+         raise HTTPException(status_code=403, detail="Sem permissão.")
+
+    # 2. Captura hora e define turno via servidor (BRT)
+    brt_tz = pytz.timezone('America/Sao_Paulo')
+    agora = datetime.now(brt_tz)
+    hora_atual = agora.hour
+    nova_timestamp = agora.isoformat()
+
+    turno = "Turno Noite"
+    if 7 <= hora_atual < 19:
+        turno = "Turno Dia"
+
+    update_payload = {"turno_registro": turno}
+
+    if payload.acao == 'entregar':
+        update_payload["status_chave"] = "em_uso"
+        update_payload["retirada_em"] = nova_timestamp
+        update_payload["entregue_por"] = requester_id
+    elif payload.acao == 'receber':
+        update_payload["status_chave"] = "concluida"
+        update_payload["devolvida_em"] = nova_timestamp
+        update_payload["recebida_por"] = requester_id
+        if payload.ocorrencia_texto:
+            update_payload["ocorrencia_texto"] = payload.ocorrencia_texto
+    else:
+        raise HTTPException(status_code=400, detail="Ação inválida")
+
+    result = supabase.table("reservas").update(update_payload).eq("id", reserva_id).execute()
+    
+    if not result.data:
+         raise HTTPException(status_code=404, detail="Reserva não encontrada.")
+
+    return result.data[0]
+
+# --- Notificacoes CRUD ---
+
+@app.get("/api/notificacoes")
+async def list_notificacoes(requester_id: str = Header(...)):
+    """Lista notificações para o usuário ou globais usando o header de autorização indiretamente na policy (ou via query se RLS assumir role auth)."""
+    # Como não estamos repassando o JWT neste modelo simplificado de Client, 
+    # as policies RLS não verão o auth.uid() da requisição servidor-a-servidor a não ser que façamos impersonation.
+    # Solução Pragmática: o Backend Python buscará com a chave Admin e aplicará o filtro do destinátario programaticamente 
+    # se o token usado for a anon ou service key padrão sem JWT spoofing.
+    
+    result = supabase.table("notificacoes") \
+        .select("*") \
+        .or_(f"destinatario_id.eq.{requester_id},destinatario_id.is.null") \
+        .order("created_at", desc=True) \
+        .execute()
+    return result.data
+
+@app.post("/api/notificacoes")
+async def create_notificacoes(notificacao: NotificacaoCreate, requester_id: str = Header(...)):
+    """Cria uma nova notificação (Apenas admins)."""
+    # Validação de admin via backend além da RLS
+    admin_check = supabase.table("usuarios").select("cargo").eq("id", requester_id).single().execute()
+    if not admin_check.data or admin_check.data["cargo"] not in ['SysAdmin', 'Síndico Geral', 'Subsíndico']:
+         raise HTTPException(status_code=403, detail="Sem permissão para criar notificações.")
+
+    result = supabase.table("notificacoes").insert({
+        "mensagem": notificacao.mensagem,
+        "destinatario_id": notificacao.destinatario_id
+    }).execute()
+    return result.data[0]
+
+@app.patch("/api/notificacoes/{notificacao_id}/lida")
+async def mark_notificacao_lida(notificacao_id: str, requester_id: str = Header(...)):
+    """Seta lida = true"""
+    # Verifica se pertence ao usuário
+    check = supabase.table("notificacoes").select("destinatario_id").eq("id", notificacao_id).single().execute()
+    if check.data and check.data["destinatario_id"] and check.data["destinatario_id"] != requester_id:
+        raise HTTPException(status_code=403, detail="Não pertence a você.")
+
+    result = supabase.table("notificacoes").update({"lida": True}).eq("id", notificacao_id).execute()
+    return {"status": "ok"}
