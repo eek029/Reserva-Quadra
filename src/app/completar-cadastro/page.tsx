@@ -132,26 +132,35 @@ export default function CompletarCadastroPage() {
 
         setLoading(true);
         try {
-            const updatePayload: Record<string, string | null> = {
-                nome_completo: nomeCompleto,
-                cpf,
-                rg: rg || 'Não informado',
-                data_nascimento: dataNascimento,
-                telefone,
-                cargo,
-                torre: showTorre ? torre : null,
-                apartamento: showApto ? apartamento : null,
-                bloco: showBloco ? bloco : null,
-                foto_url: previewImage || null,
-                status: 'pendente',
-            };
+            // Use the same encrypted API as /register to write cpf_encrypted correctly.
+            // Direct Supabase UPDATE fails because cpf is stored encrypted (cpf_encrypted bytea).
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token || '';
 
-            const { error: dbError } = await supabase
-                .from('usuarios')
-                .update(updatePayload)
-                .eq('id', authUserId);
+            const response = await fetch(`/api/usuarios?auth_id=${authUserId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    nome_completo: nomeCompleto,
+                    cpf,
+                    rg: rg || 'Não informado',
+                    data_nascimento: dataNascimento,
+                    telefone,
+                    cargo,
+                    torre: showTorre ? torre : '',
+                    apartamento: showApto ? apartamento : '',
+                    bloco: showBloco ? bloco : '',
+                    foto_url: previewImage || null,
+                }),
+            });
 
-            if (dbError) throw dbError;
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                throw new Error(errData.detail || `Erro ${response.status} ao salvar dados.`);
+            }
 
             router.replace('/dashboard');
         } catch (err: unknown) {
@@ -160,6 +169,7 @@ export default function CompletarCadastroPage() {
             setLoading(false);
         }
     };
+
 
     if (pageLoading) {
         return (
