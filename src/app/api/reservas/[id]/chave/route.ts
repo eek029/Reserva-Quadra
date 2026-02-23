@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic';
+
 // Helper: create client lazily inside each handler so env vars are available at runtime
 function getSupabase() {
     return createClient(
