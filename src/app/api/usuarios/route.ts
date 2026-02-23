@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY!;
+function getSupabase() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+}
 
 // POST /api/usuarios?auth_id=xxx
 export async function POST(request: NextRequest) {
+    const supabase = getSupabase();
+    const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY!;
+
     const auth_id = request.nextUrl.searchParams.get('auth_id');
     if (!auth_id) {
         return NextResponse.json({ detail: 'auth_id é obrigatório.' }, { status: 400 });

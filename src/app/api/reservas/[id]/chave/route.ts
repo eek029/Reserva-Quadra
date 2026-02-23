@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Helper: create client lazily inside each handler so env vars are available at runtime
+function getSupabase() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+}
 
 // PATCH /api/reservas/[id]/chave
 export async function PATCH(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const supabase = getSupabase();
     const requesterId = request.headers.get('requester-id');
     const { id } = params;
     const body = await request.json();

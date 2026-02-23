@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY!;
+function getSupabase() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+}
 
 // GET /api/usuarios/[id]
 export async function GET(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const supabase = getSupabase();
+    const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY!;
+
     const requesterId = request.headers.get('requester-id');
     const { id } = params;
 
