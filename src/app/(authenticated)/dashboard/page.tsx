@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Calendar as CalendarIcon, List, X, ChevronLeft, ChevronRight, Check, ShieldCheck, CheckCircle2, Megaphone, Send, Users } from 'lucide-react';
+import { Calendar as CalendarIcon, List, X, ChevronLeft, ChevronRight, Check, ShieldCheck, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import AdminApprovalPanel from '@/components/AdminApprovalPanel';
 import AdminNotificationPanel from '@/components/AdminNotificationPanel';

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { KeyRound, CheckCircle2, ShieldAlert, Key } from 'lucide-react';
+import { CheckCircle2, ShieldAlert, Key } from 'lucide-react';
 
 interface Reserva {
     id: string;
@@ -27,7 +27,7 @@ export default function PorteiroAgendaHoje() {
     const [isDevolucaoModalOpen, setIsDevolucaoModalOpen] = useState(false);
     const [reservaSelecionada, setReservaSelecionada] = useState<Reserva | null>(null);
 
-    const fetchReservasHoje = async () => {
+    const fetchReservasHoje = useCallback(async () => {
         setIsLoading(true);
         const brtDate = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
         const dateStr = new Date(brtDate).toISOString().split('T')[0];
@@ -51,11 +51,11 @@ export default function PorteiroAgendaHoje() {
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         fetchReservasHoje();
-    }, []);
+    }, [fetchReservasHoje]);
 
     const processarChave = async (res: Reserva, acao: 'entregar' | 'receber') => {
         try {
@@ -136,8 +136,8 @@ export default function PorteiroAgendaHoje() {
                                         </span>
                                     </div>
                                     <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${res.status_chave === 'em_uso' ? 'bg-amber-100 text-amber-700' :
-                                            res.status_chave === 'concluida' ? 'bg-green-100 text-green-700' :
-                                                'bg-gray-100 text-gray-600'
+                                        res.status_chave === 'concluida' ? 'bg-green-100 text-green-700' :
+                                            'bg-gray-100 text-gray-600'
                                         }`}>
                                         {res.status_chave.replace('_', ' ')}
                                     </span>

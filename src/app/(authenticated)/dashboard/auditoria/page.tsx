@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ShieldCheck, History, Clock, FileText, Download } from 'lucide-react';
+import { ShieldCheck, History, FileText, Download } from 'lucide-react';
 import Link from 'next/link';
 
 interface AuditReserva {
@@ -59,7 +59,7 @@ export default function AuditoriaChavesPage() {
                 .order('devolvida_em', { ascending: false, nullsFirst: false });
 
             if (!error && data) {
-                setHistorico(data as any);
+                setHistorico(data as unknown as AuditReserva[]);
             }
             setIsLoading(false);
         };
@@ -147,7 +147,7 @@ export default function AuditoriaChavesPage() {
                                     </td>
                                     <td className="p-4 text-center">
                                         <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase ${record.status_chave === 'em_uso' ? 'bg-amber-100 text-amber-700' :
-                                                'bg-green-100 text-green-700'
+                                            'bg-green-100 text-green-700'
                                             }`}>
                                             {record.status_chave.replace('_', ' ')}
                                         </span>

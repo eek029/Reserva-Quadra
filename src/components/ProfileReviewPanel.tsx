@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ClipboardList, Check, X, Loader2, User, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -33,7 +33,7 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [previewFoto, setPreviewFoto] = useState<string | null>(null);
 
-    const fetchRequests = async () => {
+    const fetchRequests = useCallback(async () => {
         setIsLoading(true);
         let query = supabase
             .from('solicitacoes_perfil')
@@ -53,9 +53,9 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
             setRequests(filtered);
         }
         setIsLoading(false);
-    };
+    }, [currentUserRole, currentUserTorre]);
 
-    useEffect(() => { fetchRequests(); }, []);
+    useEffect(() => { fetchRequests(); }, [fetchRequests]);
 
     const handleApprove = async (req: Solicitacao) => {
         setProcessingId(req.id);

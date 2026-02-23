@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Users, Trash2, Loader2, X, ShieldAlert } from 'lucide-react';
+import { Users, Trash2, Loader2, ShieldAlert } from 'lucide-react';
 
 interface Usuario {
     id: string;
@@ -26,7 +26,7 @@ export default function UserManagementPanel({ currentUserId, currentUserRole }: 
     const [confirmTarget, setConfirmTarget] = useState<Usuario | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const fetchUsuarios = async () => {
+    const fetchUsuarios = useCallback(async () => {
         setIsLoading(true);
         const { data } = await supabase
             .from('usuarios')
@@ -42,9 +42,9 @@ export default function UserManagementPanel({ currentUserId, currentUserRole }: 
             setUsuarios(filtered);
         }
         setIsLoading(false);
-    };
+    }, [currentUserId, currentUserRole]);
 
-    useEffect(() => { fetchUsuarios(); }, []);
+    useEffect(() => { fetchUsuarios(); }, [fetchUsuarios]);
 
     const handleDelete = async () => {
         if (!confirmTarget) return;

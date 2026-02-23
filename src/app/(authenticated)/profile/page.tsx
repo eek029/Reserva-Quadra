@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Camera, ShieldAlert, Upload, Loader2, CheckCircle } from 'lucide-react';
-import Image from 'next/image';
+
 import { supabase } from '@/lib/supabase';
 
 interface Usuario {
