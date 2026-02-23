@@ -29,9 +29,14 @@ export default function CompletarCadastroPage() {
     const [pageLoading, setPageLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Cargos that don't need Torre/Apto
-    const CARGO_SEM_UNIDADE = ['Porteiro', 'Síndico Geral', 'SysAdmin'];
-    const needsUnidade = !CARGO_SEM_UNIDADE.includes(cargo);
+    // Address visibility rules
+    // SysAdmin  → no address fields
+    // Porteiro  → Torre only
+    // Others    → Torre + Apto + Bloco(if T5)
+    const isResident = ['Morador', 'Subsíndico', 'Síndico Geral'].includes(cargo);
+    const showTorre = cargo !== 'SysAdmin';
+    const showApto = isResident;
+    const showBloco = isResident && torre === '5';
 
     // --- Masks ---
     const maskCpf = (value: string) =>
@@ -116,11 +121,11 @@ export default function CompletarCadastroPage() {
             setError('Celular incompleto. Por favor, verifique o número.');
             return;
         }
-        if (needsUnidade && !torre) {
+        if (showTorre && !torre) {
             setError('Selecione a sua Torre.');
             return;
         }
-        if (needsUnidade && !apartamento) {
+        if (showApto && !apartamento) {
             setError('Informe o seu Apartamento.');
             return;
         }
@@ -134,9 +139,9 @@ export default function CompletarCadastroPage() {
                 data_nascimento: dataNascimento,
                 telefone,
                 cargo,
-                torre: needsUnidade ? torre : null,
-                apartamento: needsUnidade ? apartamento : null,
-                bloco: (needsUnidade && torre === '5' && bloco) ? bloco : null,
+                torre: showTorre ? torre : null,
+                apartamento: showApto ? apartamento : null,
+                bloco: showBloco ? bloco : null,
                 foto_url: previewImage || null,
                 status: 'pendente',
             };
@@ -296,56 +301,59 @@ export default function CompletarCadastroPage() {
                                 </div>
                             </div>
 
-                            {/* Torre e Apto — só para cargos residenciais */}
-                            {needsUnidade && (
-                                <>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Torre</label>
-                                        <select
-                                            required
-                                            value={torre}
-                                            onChange={e => setTorre(e.target.value)}
-                                            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
-                                        >
-                                            <option value="">Selecione a Torre</option>
-                                            {[1, 2, 3, 4, 5].map(num => (
-                                                <option key={num} value={num}>Torre {num}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Apartamento</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={apartamento}
-                                            onChange={e => setApartamento(e.target.value)}
-                                            className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
-                                            placeholder="00"
-                                        />
-                                    </div>
+                            {/* ── Torre: todos exceto SysAdmin ── */}
+                            {showTorre && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Torre</label>
+                                    <select
+                                        required
+                                        value={torre}
+                                        onChange={e => { setTorre(e.target.value); setBloco(''); }}
+                                        className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
+                                    >
+                                        <option value="">Selecione a Torre</option>
+                                        {[1, 2, 3, 4, 5].map(num => (
+                                            <option key={num} value={num}>Torre {num}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
-                                    {torre === '5' && (
-                                        <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700">Bloco (Torre 5)</label>
-                                            <div className="mt-2 flex space-x-4">
-                                                {['A', 'B'].map(b => (
-                                                    <label key={b} className="inline-flex items-center">
-                                                        <input
-                                                            type="radio"
-                                                            name="bloco"
-                                                            value={b}
-                                                            checked={bloco === b}
-                                                            onChange={e => setBloco(e.target.value)}
-                                                            className="form-radio h-4 w-4 text-violet-600 border-gray-300"
-                                                        />
-                                                        <span className="ml-2 text-sm text-gray-700">Bloco {b}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </>
+                            {/* ── Apartamento: só residentes ── */}
+                            {showApto && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Apartamento</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={apartamento}
+                                        onChange={e => setApartamento(e.target.value)}
+                                        className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 sm:text-sm"
+                                        placeholder="00"
+                                    />
+                                </div>
+                            )}
+
+                            {/* ── Bloco: residentes na Torre 5 ── */}
+                            {showBloco && (
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700">Bloco (Torre 5)</label>
+                                    <div className="mt-2 flex space-x-4">
+                                        {['A', 'B'].map(b => (
+                                            <label key={b} className="inline-flex items-center">
+                                                <input
+                                                    type="radio"
+                                                    name="bloco"
+                                                    value={b}
+                                                    checked={bloco === b}
+                                                    onChange={e => setBloco(e.target.value)}
+                                                    className="form-radio h-4 w-4 text-violet-600 border-gray-300"
+                                                />
+                                                <span className="ml-2 text-sm text-gray-700">Bloco {b}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
                         </div>
 

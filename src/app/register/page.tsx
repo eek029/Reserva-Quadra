@@ -348,7 +348,7 @@ export default function RegisterPage() {
                                         <button
                                             key={item}
                                             type="button"
-                                            onClick={() => setCargo(item)}
+                                            onClick={() => { setCargo(item); setTorre(''); setApartamento(''); setBloco(''); }}
                                             className={`px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${cargo === item
                                                 ? 'border-violet-600 bg-violet-50 text-violet-700'
                                                 : 'border-gray-200 text-gray-500 hover:border-violet-200'
@@ -361,23 +361,26 @@ export default function RegisterPage() {
                             </div>
 
                             {/* Conditional Tower and Apt Section */}
-                            {/* Torre is always shown - for Porteiro too */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Torre</label>
-                                <select
-                                    required
-                                    value={torre}
-                                    onChange={(e) => setTorre(e.target.value)}
-                                    className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
-                                >
-                                    <option value="">Selecione a Torre</option>
-                                    {[1, 2, 3, 4, 5].map((num) => (
-                                        <option key={num} value={num}>Torre {num}</option>
-                                    ))}
-                                </select>
-                            </div>
+                            {/* ── Torre: visível para todos exceto SysAdmin ── */}
+                            {cargo !== 'SysAdmin' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Torre</label>
+                                    <select
+                                        required
+                                        value={torre}
+                                        onChange={(e) => { setTorre(e.target.value); setBloco(''); }}
+                                        className="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-violet-500 focus:border-violet-500 transition-shadow sm:text-sm"
+                                    >
+                                        <option value="">Selecione a Torre</option>
+                                        {[1, 2, 3, 4, 5].map((num) => (
+                                            <option key={num} value={num}>Torre {num}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
-                            {cargo !== 'Porteiro' && (
+                            {/* ── Apartamento: só para residentes (Morador, Subsíndico, Síndico Geral) ── */}
+                            {['Morador', 'Subsíndico', 'Síndico Geral'].includes(cargo) && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Apartamento</label>
                                     <input
@@ -391,8 +394,8 @@ export default function RegisterPage() {
                                 </div>
                             )}
 
-                            {/* Conditional Bloco for Torre 5 (non-Porteiro) */}
-                            {cargo !== 'Porteiro' && torre === '5' && (
+                            {/* ── Bloco: só para residentes na Torre 5 ── */}
+                            {['Morador', 'Subsíndico', 'Síndico Geral'].includes(cargo) && torre === '5' && (
                                 <div className="md:col-span-2 animate-in fade-in slide-in-from-top-2 duration-300">
                                     <label className="block text-sm font-medium text-gray-700">Bloco (Torre 5)</label>
                                     <div className="mt-2 flex space-x-4">
