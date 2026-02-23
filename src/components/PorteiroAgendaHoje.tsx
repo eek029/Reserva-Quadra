@@ -113,6 +113,7 @@ export default function PorteiroAgendaHoje() {
                             <div className="p-4 flex items-center gap-4 md:w-1/3 border-b md:border-b-0 md:border-r border-gray-100 bg-gray-50">
                                 <div className="w-14 h-14 rounded-full bg-gray-300 border-2 border-white shadow-sm overflow-hidden flex-shrink-0 relative">
                                     {res.usuarios?.foto_url ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
                                         <img src={res.usuarios.foto_url} alt="Morador" className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-gray-500 text-xl font-bold">

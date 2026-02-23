@@ -38,7 +38,7 @@ export default function AuditoriaChavesPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const { data: user } = await supabase.table("usuarios").select("cargo").eq("id", session.user.id).single();
+            const { data: user } = await supabase.from("usuarios").select("cargo").eq("id", session.user.id).single();
             if (!user || !['SysAdmin', 'Síndico Geral', 'Subsíndico'].includes(user.cargo)) {
                 setIsLoading(false);
                 return;
