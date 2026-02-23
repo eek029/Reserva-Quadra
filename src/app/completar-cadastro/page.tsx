@@ -94,11 +94,11 @@ export default function CompletarCadastroPage() {
             // If profile is already complete, go to dashboard
             const { data: profile } = await supabase
                 .from('usuarios')
-                .select('cpf, cargo')
+                .select('cpf_encrypted, cargo')
                 .eq('id', session.user.id)
                 .maybeSingle();
 
-            if (profile?.cpf && profile?.cargo) {
+            if (profile?.cpf_encrypted && profile?.cargo) {
                 router.replace('/dashboard');
                 return;
             }

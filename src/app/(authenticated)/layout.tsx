@@ -26,12 +26,14 @@ export default function DashboardLayout({
 
                 const { data: userData } = await supabase
                     .from('usuarios')
-                    .select('status, cpf, cargo')
+                    .select('status, cpf_encrypted, cargo')
                     .eq('id', session.user.id)
                     .maybeSingle();
 
-                // No profile row at all, or missing CPF/cargo → needs onboarding
-                if (!userData || !userData.cpf || !userData.cargo) {
+                // Only redirect if the profile is TRULY incomplete:
+                // missing CPF (stored as cpf_encrypted) or missing cargo.
+                // Porteiro/SysAdmin have no apartment — that is expected, NOT a reason to redirect.
+                if (!userData || !userData.cpf_encrypted || !userData.cargo) {
                     router.replace('/completar-cadastro');
                     return;
                 }
