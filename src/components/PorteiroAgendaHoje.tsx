@@ -22,12 +22,6 @@ interface Reserva {
     };
 }
 
-interface Morador {
-    id: string;
-    nome_completo: string;
-    torre: string;
-    apartamento: string;
-}
 
 interface Slot {
     hora_inicio: string;
@@ -64,8 +58,7 @@ export default function PorteiroAgendaHoje() {
 
     // ── Modal: Reserva Presencial ────────────────────────────────────────────
     const [isPresencialOpen, setIsPresencialOpen] = useState(false);
-    const [moradores, setMoradores] = useState<Morador[]>([]);
-    const [selectedMorador, setSelectedMorador] = useState('');
+    const [observacaoPresencial, setObservacaoPresencial] = useState('');
     const [selectedSlot, setSelectedSlot] = useState('');
     const [freeSlots, setFreeSlots] = useState<Slot[]>([]);
     const [isSavingPresencial, setIsSavingPresencial] = useState(false);
@@ -102,17 +95,8 @@ export default function PorteiroAgendaHoje() {
     // ── Open Presencial Modal ────────────────────────────────────────────────
     const openPresencialModal = async () => {
         setIsPresencialOpen(true);
-        setSelectedMorador('');
+        setObservacaoPresencial('');
         setSelectedSlot('');
-
-        // Load moradores
-        const { data: morData } = await supabase
-            .from('usuarios')
-            .select('id, nome_completo, torre, apartamento')
-            .eq('status', 'aprovado')
-            .eq('cargo', 'Morador')
-            .order('nome_completo');
-        setMoradores(morData || []);
 
         // Compute free slots for today
         const dateStr = getTodayBRT();
@@ -130,7 +114,7 @@ export default function PorteiroAgendaHoje() {
 
     // ── Submit Presencial ────────────────────────────────────────────────────
     const handleConfirmarPresencial = async () => {
-        if (!selectedMorador || !selectedSlot || !sessionUserId) return;
+        if (!observacaoPresencial.trim() || !selectedSlot || !sessionUserId) return;
         setIsSavingPresencial(true);
 
         const slot = ALL_SLOTS.find(s => s.hora_inicio === selectedSlot);
@@ -144,7 +128,7 @@ export default function PorteiroAgendaHoje() {
                     'requester-id': sessionUserId,
                 },
                 body: JSON.stringify({
-                    morador_id: selectedMorador,
+                    observacao: observacaoPresencial.trim(),
                     hora_inicio: slot.hora_inicio,
                     hora_fim: slot.hora_fim,
                 }),
@@ -246,8 +230,8 @@ export default function PorteiroAgendaHoje() {
                                         {res.hora_inicio.slice(0, 5)} - {res.hora_fim.slice(0, 5)}
                                     </span>
                                     <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${res.status_chave === 'em_uso' ? 'bg-amber-100 text-amber-700' :
-                                            res.status_chave === 'concluida' ? 'bg-green-100 text-green-700' :
-                                                'bg-gray-100 text-gray-600'
+                                        res.status_chave === 'concluida' ? 'bg-green-100 text-green-700' :
+                                            'bg-gray-100 text-gray-600'
                                         }`}>
                                         {res.status_chave.replace('_', ' ')}
                                     </span>
@@ -298,21 +282,18 @@ export default function PorteiroAgendaHoje() {
                             Registre uma reserva em nome de um morador que está presente na portaria.
                         </p>
 
-                        {/* Morador selector */}
+                        {/* Morador: texto livre */}
                         <div className="mb-4">
-                            <label className="block text-sm font-semibold text-gray-700 mb-1">Morador</label>
-                            <select
-                                value={selectedMorador}
-                                onChange={e => setSelectedMorador(e.target.value)}
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500 bg-white"
-                            >
-                                <option value="">Selecione um morador...</option>
-                                {moradores.map(m => (
-                                    <option key={m.id} value={m.id}>
-                                        {m.nome_completo} — T{m.torre}, Apto {m.apartamento}
-                                    </option>
-                                ))}
-                            </select>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                Nome e Apto do Morador <span className="font-normal text-gray-400">(Registro Manual)</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={observacaoPresencial}
+                                onChange={e => setObservacaoPresencial(e.target.value)}
+                                placeholder="Ex: João Silva — Torre 2, Apto 304"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500"
+                            />
                         </div>
 
                         {/* Slot selector */}
@@ -345,7 +326,7 @@ export default function PorteiroAgendaHoje() {
                             </button>
                             <button
                                 onClick={handleConfirmarPresencial}
-                                disabled={!selectedMorador || !selectedSlot || isSavingPresencial || freeSlots.length === 0}
+                                disabled={!observacaoPresencial.trim() || !selectedSlot || isSavingPresencial || freeSlots.length === 0}
                                 className="flex-1 py-2 font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {isSavingPresencial ? (

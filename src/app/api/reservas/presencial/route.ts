@@ -11,8 +11,8 @@ function getSupabase() {
 }
 
 // POST /api/reservas/presencial
-// Body: { morador_id, hora_inicio, hora_fim }
-// Header: requester-id (porteiro)
+// Body: { observacao, hora_inicio, hora_fim }
+// Header: requester-id (porteiro — usado como usuario_id para respeitar RLS)
 export async function POST(request: NextRequest) {
     const supabase = getSupabase();
     const porteiro_id = request.headers.get('requester-id');
@@ -32,22 +32,10 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { morador_id, hora_inicio, hora_fim } = body;
+    const { observacao, hora_inicio, hora_fim } = body;
 
-    if (!morador_id || !hora_inicio || !hora_fim) {
-        return NextResponse.json({ detail: 'morador_id, hora_inicio e hora_fim são obrigatórios.' }, { status: 400 });
-    }
-
-    // Verify morador exists and is approved
-    const { data: morador } = await supabase
-        .from('usuarios')
-        .select('id, status')
-        .eq('id', morador_id)
-        .eq('status', 'aprovado')
-        .single();
-
-    if (!morador) {
-        return NextResponse.json({ detail: 'Morador não encontrado ou não aprovado.' }, { status: 404 });
+    if (!observacao?.trim() || !hora_inicio || !hora_fim) {
+        return NextResponse.json({ detail: 'observacao, hora_inicio e hora_fim são obrigatórios.' }, { status: 400 });
     }
 
     // Use BRT date for today
@@ -67,17 +55,18 @@ export async function POST(request: NextRequest) {
         }
     }
 
-    // Insert reservation linked to the morador (not the porteiro)
+    // INSERT with usuario_id = porteiro_id (respects RLS) + observacao with morador info
     const { data, error } = await supabase
         .from('reservas')
         .insert([{
-            usuario_id: morador_id,
+            usuario_id: porteiro_id,
             data_reserva,
             hora_inicio,
             hora_fim,
             status: 'ativa',
             status_chave: 'aguardando',
             aceite_termos: true,
+            observacao: observacao.trim(),
         }])
         .select()
         .single();

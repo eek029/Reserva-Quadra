@@ -126,7 +126,7 @@ export default function Header() {
                 <div className="flex items-center gap-4">
                     {isDashboard ? (
                         <>
-                            <div className="relative group" title="Notificações">
+                            <div className="relative" title="Notificações">
                                 <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 hover:bg-violet-500 rounded-full transition-colors relative">
                                     <Bell className="w-5 h-5" />
                                     {notifications.filter(n => !n.lida).length > 0 && (
@@ -134,9 +134,9 @@ export default function Header() {
                                     )}
                                 </button>
 
-                                {/* Dropdown Notificações */}
+                                {/* Dropdown Notificações — anchored right, max-width capped for mobile */}
                                 {showNotifications && (
-                                    <div className="absolute right-0 mt-3 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden text-gray-900 animate-in fade-in slide-in-from-top-2">
+                                    <div className="absolute right-0 mt-3 w-screen max-w-xs sm:max-w-sm bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden text-gray-900 animate-in fade-in slide-in-from-top-2">
                                         <div className="p-3 border-b border-gray-100 font-semibold text-sm text-gray-800 bg-gray-50 flex justify-between items-center">
                                             <span>Notificações da Administração</span>
                                             <span className="bg-violet-100 text-violet-700 text-xs px-2 py-0.5 rounded-full">{notifications.filter(n => !n.lida).length} novas</span>
@@ -155,8 +155,8 @@ export default function Header() {
                                                         ) : (
                                                             <div className="w-2 h-2 rounded-full bg-transparent border border-gray-300 mt-1.5 flex-shrink-0"></div>
                                                         )}
-                                                        <div className="flex-1">
-                                                            <p className="leading-snug">{notif.mensagem}</p>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="leading-snug break-words">{notif.mensagem}</p>
                                                             <span className="text-[10px] text-gray-400 mt-1 block">
                                                                 {new Date(notif.created_at).toLocaleDateString('pt-BR')} às {new Date(notif.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                                             </span>
