@@ -120,10 +120,14 @@ export default function RegisterPage() {
             // Extra checks to make sure we have the user
             if (!data.user?.id) throw new Error("Falha ao criar usuário na autenticação.");
 
-            // Gravar na API
+            // Gravar na API — autenticar com token da sessão recém-criada
+            const sessionToken = data.session?.access_token || '';
             const response = await fetch(`/api/usuarios?auth_id=${data.user.id}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionToken}`,
+                },
                 body: JSON.stringify({
                     nome_completo: nomeCompleto,
                     rg: rg || 'Não informado', // Backend requires a string, can't be null

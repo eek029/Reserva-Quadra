@@ -10,6 +10,17 @@ function getSupabase() {
     );
 }
 
+/** Extract & validate JWT Bearer token — returns null if invalid/missing */
+async function getAuthUser(request: NextRequest) {
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
+    if (!token) return null;
+    const { data: { user }, error } = await createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    ).auth.getUser(token);
+    return error ? null : user;
+}
+
 // POST /api/usuarios?auth_id=xxx
 export async function POST(request: NextRequest) {
     const supabase = getSupabase();
@@ -18,6 +29,12 @@ export async function POST(request: NextRequest) {
     const auth_id = request.nextUrl.searchParams.get('auth_id');
     if (!auth_id) {
         return NextResponse.json({ detail: 'auth_id é obrigatório.' }, { status: 400 });
+    }
+
+    // Validate that the caller's JWT matches the auth_id — prevents profile hijacking
+    const user = await getAuthUser(request);
+    if (!user || user.id !== auth_id) {
+        return NextResponse.json({ detail: 'Não autorizado.' }, { status: 401 });
     }
 
     const body = await request.json();

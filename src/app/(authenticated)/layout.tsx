@@ -36,8 +36,8 @@ export default function DashboardLayout({
                     return;
                 }
 
-                // Profile exists but awaiting admin approval
-                if (userData.status.toLowerCase() !== 'aprovado') {
+                // Profile complete but awaiting admin approval
+                if (userData.status?.toLowerCase() !== 'aprovado') {
                     setIsPending(true);
                 }
 

@@ -83,8 +83,12 @@ export default function DashboardPage() {
 
                 // Fetch real user data
                 try {
+                    const { data: { session: currentSession } } = await supabase.auth.getSession();
+                    const token = currentSession?.access_token || '';
                     const res = await fetch(`/api/usuarios/${session.user.id}`, {
-                        headers: { 'requester-id': session.user.id }
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                        }
                     });
                     if (res.ok) {
                         const userData = await res.json();
@@ -139,7 +143,12 @@ export default function DashboardPage() {
             const dateStr = currentDate.toISOString().split('T')[0];
             try {
                 // Fetch valid appointments
-                const res = await fetch(`/api/reservas?data=${dateStr}`);
+                const { data: { session: reservaSession } } = await supabase.auth.getSession();
+                const reservaToken = reservaSession?.access_token || '';
+                const res = await fetch(`/api/reservas?data=${dateStr}`, {
+                    headers: { 'Authorization': `Bearer ${reservaToken}` }
+                });
+
                 let reservas = [];
 
                 if (res.ok) {
@@ -218,10 +227,15 @@ export default function DashboardPage() {
         };
 
         try {
-            // 1. Validate rules using Fast API Backend
+            // 1. Validate rules using API
+            const { data: { session: valSession } } = await supabase.auth.getSession();
+            const valToken = valSession?.access_token || '';
             const validateRes = await fetch('/api/reservas/validate', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${valToken}`,
+                },
                 body: JSON.stringify(payload)
             });
 
