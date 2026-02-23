@@ -21,20 +21,27 @@ export default function DashboardLayout({
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) {
                     router.replace('/');
-                } else {
-                    // MUDANÇA DRÁSTICA: Buscar usuário. Se NÃO estiver "aprovado" (nulo, pendente, rejeitado), BLOQUEAR.
-                    const { data: userData } = await supabase
-                        .from('usuarios')
-                        .select('status')
-                        .eq('id', session.user.id)
-                        .maybeSingle(); // maybeSingle returns null instead of throwing an error on 0 rows
-
-                    // Qualquer status diferente de 'aprovado' cai no bloqueio
-                    if (!userData || userData.status.toLowerCase() !== 'aprovado') {
-                        setIsPending(true);
-                    }
-                    setIsLoading(false);
+                    return;
                 }
+
+                const { data: userData } = await supabase
+                    .from('usuarios')
+                    .select('status, cpf, cargo')
+                    .eq('id', session.user.id)
+                    .maybeSingle();
+
+                // No profile row at all, or missing CPF/cargo → needs onboarding
+                if (!userData || !userData.cpf || !userData.cargo) {
+                    router.replace('/completar-cadastro');
+                    return;
+                }
+
+                // Profile exists but awaiting admin approval
+                if (userData.status.toLowerCase() !== 'aprovado') {
+                    setIsPending(true);
+                }
+
+                setIsLoading(false);
             } catch (error) {
                 console.error("Auth error:", error);
                 router.replace('/');
@@ -55,6 +62,7 @@ export default function DashboardLayout({
             authListener.subscription.unsubscribe();
         };
     }, [router]);
+
 
     if (isLoading) {
         return (
