@@ -50,7 +50,7 @@ export async function GET(
 
         if (!ENCRYPTION_KEY) {
             console.error('[api/usuarios/[id]] ENCRYPTION_KEY not set');
-            return NextResponse.json({ detail: 'Configuração do servidor incompleta.' }, { status: 500 });
+            return NextResponse.json({ error: 'Configuração do servidor incompleta.' }, { status: 500 });
         }
 
         // 2. Check caller has admin role before returning sensitive decrypted data
@@ -62,11 +62,11 @@ export async function GET(
 
         if (profileError) {
             console.error('[api/usuarios/[id]] Profile fetch error:', profileError.message);
-            return NextResponse.json({ detail: 'Erro ao verificar permissões.' }, { status: 500 });
+            return NextResponse.json({ error: 'Erro ao verificar permissões.' }, { status: 500 });
         }
 
         if (!callerProfile || !ADMIN_CARGOS.includes(callerProfile.cargo)) {
-            return NextResponse.json({ detail: 'Acesso negado. Apenas administradores podem visualizar dados sensíveis.' }, { status: 403 });
+            return NextResponse.json({ error: 'Acesso negado. Apenas administradores podem visualizar dados sensíveis.' }, { status: 403 });
         }
 
         // 3. Decrypt user data via RPC (NULL-safe after migration)
@@ -77,11 +77,11 @@ export async function GET(
 
         if (error) {
             console.error('[api/usuarios/[id]] RPC error:', JSON.stringify(error));
-            return NextResponse.json({ detail: error.message }, { status: 500 });
+            return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
         if (!data || data.length === 0) {
-            return NextResponse.json({ detail: 'Usuário não encontrado.' }, { status: 404 });
+            return NextResponse.json({ error: 'Usuário não encontrado.' }, { status: 404 });
         }
 
         // Audit log (fire and forget)
@@ -94,8 +94,8 @@ export async function GET(
         return NextResponse.json(data[0]);
 
     } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : 'Erro interno desconhecido.';
-        console.error('[api/usuarios/[id]] Unhandled exception:', message);
-        return NextResponse.json({ detail: message }, { status: 500 });
+        const errorMessage = err instanceof Error ? err.message : 'Erro interno desconhecido.';
+        console.error('[api/usuarios/[id]] Unhandled exception:', errorMessage);
+        return NextResponse.json({ error: errorMessage }, { status: 500 });
     }
 }

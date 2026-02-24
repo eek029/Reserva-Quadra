@@ -102,7 +102,7 @@ function AuditModal({
 
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail || `Erro ${res.status}`);
+                throw new Error(err.error || err.detail || `Erro ${res.status}`);
             }
 
             const data = await res.json();

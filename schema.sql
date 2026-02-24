@@ -145,7 +145,6 @@ BEGIN
 END;
 $$;
 
--- RPC to get user with decrypted RG/CPF safely
 CREATE OR REPLACE FUNCTION get_usuario_decrypted(
     target_id UUID,
     secret_key TEXT
@@ -167,8 +166,8 @@ BEGIN
     RETURN QUERY
     SELECT 
         u.id, u.nome_completo, u.data_nascimento, u.telefone, u.apartamento, u.torre, u.bloco, u.foto_url, u.cargo,
-        public.safe_decrypt(u.rg_encrypted, secret_key) AS rg,
-        public.safe_decrypt(u.cpf_encrypted, secret_key) AS cpf,
+        CASE WHEN u.rg_encrypted IS NULL THEN null ELSE pgp_sym_decrypt(u.rg_encrypted::bytea, secret_key) END AS rg,
+        CASE WHEN u.cpf_encrypted IS NULL THEN null ELSE pgp_sym_decrypt(u.cpf_encrypted::bytea, secret_key) END AS cpf,
         u.status
     FROM public.usuarios u
     WHERE u.id = target_id;
