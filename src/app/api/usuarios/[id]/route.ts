@@ -87,6 +87,7 @@ export async function GET(
 
         return NextResponse.json(data[0]);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('[api/usuarios/[id]] Unhandled exception:', error);
         return NextResponse.json({ error: error?.message || 'Erro desconhecido' }, { status: 500 });
