@@ -98,6 +98,7 @@ function AuditModal({
 
             const res = await fetch(`/api/usuarios/${user.id}`, {
                 headers: { 'Authorization': `Bearer ${token}` },
+                credentials: 'include',
             });
 
             if (!res.ok) {
