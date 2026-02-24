@@ -132,10 +132,9 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ id: data, status: 'ok' }, { status: 200 });
 
-    } catch (err: unknown) {
-        // Global safety net — guarantees we ALWAYS return a JSON response
-        const message = err instanceof Error ? err.message : 'Erro interno desconhecido.';
-        console.error('[api/usuarios] Unhandled exception:', message);
-        return NextResponse.json({ error: message }, { status: 500 });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+        console.error('[api/usuarios] Unhandled exception:', error);
+        return NextResponse.json({ error: error?.message || 'Erro desconhecido' }, { status: 500 });
     }
 }
