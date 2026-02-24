@@ -41,6 +41,22 @@ export default function DashboardLayout({
                 // Profile complete but awaiting admin approval
                 if (userData.status?.toLowerCase() !== 'aprovado') {
                     setIsPending(true);
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Check for pending profile update requests
+                const { data: pendencias } = await supabase
+                    .from('solicitacoes_perfil')
+                    .select('id')
+                    .eq('usuario_id', session.user.id)
+                    .eq('status', 'pendente')
+                    .limit(1);
+
+                if (pendencias && pendencias.length > 0) {
+                    setIsPending(true);
+                    setIsLoading(false);
+                    return;
                 }
 
                 setIsLoading(false);
@@ -83,7 +99,7 @@ export default function DashboardLayout({
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso Restrito</h1>
                     <p className="text-gray-600 mb-8">
-                        Seu cadastro foi realizado, mas você está <strong>aguardando a aprovação da administração</strong>. Funcionalidades do sistema estarão liberadas após essa etapa.
+                        Seu cadastro ou atualização de perfil está <strong>aguardando a aprovação da administração</strong>. Funcionalidades do sistema estarão liberadas após essa etapa.
                     </p>
                     <button
                         onClick={async () => {

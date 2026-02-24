@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, List, X, ChevronLeft, ChevronRight, Check, ShieldCheck, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import AdminApprovalPanel from '@/components/AdminApprovalPanel';
+import ProfileReviewPanel from '@/components/ProfileReviewPanel';
 import AdminNotificationPanel from '@/components/AdminNotificationPanel';
 import PorteiroAgendaHoje from '@/components/PorteiroAgendaHoje';
 import MinhasReservas from '@/components/MinhasReservas';
@@ -319,8 +320,9 @@ export default function DashboardPage() {
             <div className="flex-1 max-w-4xl mx-auto w-full p-4 flex flex-col pb-24">
                 {/* Admin Area */}
                 {currentUser && (currentUser.cargo === 'Síndico Geral' || currentUser.cargo === 'Subsíndico' || currentUser.cargo === 'SysAdmin') && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                         <AdminApprovalPanel currentUserRole={currentUser.cargo} />
+                        <ProfileReviewPanel currentUserId={currentUser.id || ''} currentUserRole={currentUser.cargo || ''} currentUserTorre={currentUser.torre || ''} />
                         <AdminNotificationPanel />
                     </div>
                 )}
