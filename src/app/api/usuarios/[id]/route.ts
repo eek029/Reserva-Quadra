@@ -3,32 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-function getSupabase() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (!url || !key) {
-        throw new Error('Supabase URL or Key is missing');
-    }
-
-    return createClient(url, key);
-}
-
-/** Extract & validate JWT Bearer token — returns null if invalid/missing */
-async function getAuthUser(request: NextRequest) {
-    const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
-    if (!token) return null;
-
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!url || !key) {
-        throw new Error('Supabase URL or Key is missing');
-    }
-
-    const { data: { user }, error } = await createClient(url, key).auth.getUser(token);
-    return error ? null : user;
-}
 
 const ADMIN_CARGOS = ['SysAdmin', 'Síndico Geral', 'Subsíndico'];
 
@@ -38,13 +13,25 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     try {
-        // 1. Validate JWT
-        const caller = await getAuthUser(request);
-        if (!caller) {
-            return NextResponse.json({ detail: 'Não autorizado.' }, { status: 401 });
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!url || !key) {
+            return NextResponse.json({ error: 'Supabase URL or Key is missing no ambiente.' }, { status: 500 });
         }
 
-        const supabase = getSupabase();
+        const supabase = createClient(url, key);
+
+        // 1. Validate JWT
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
+        if (!token) {
+            return NextResponse.json({ error: 'Não autorizado. Token ausente.' }, { status: 401 });
+        }
+
+        const { data: { user: caller }, error: authError } = await supabase.auth.getUser(token);
+        if (authError || !caller) {
+            return NextResponse.json({ error: 'Não autorizado. Token inválido.' }, { status: 401 });
+        }
         const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
         const { id } = params;
 

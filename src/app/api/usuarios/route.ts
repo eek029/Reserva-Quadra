@@ -7,35 +7,7 @@ export const maxDuration = 30;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabaseClient = SupabaseClient<any, any, any>;
 
-// Uses SUPABASE_ANON_KEY (server-side, set in .env and Vercel).
-// The RPC runs as SECURITY DEFINER so it bypasses RLS regardless of key.
-// The avatars bucket is public so the anon key can upload too.
-function getSupabase() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (!url || !key) {
-        throw new Error('Supabase URL or Key is missing');
-    }
-
-    return createClient(url, key);
-}
-
-/** Extract & validate JWT Bearer token — returns null if invalid/missing */
-async function getAuthUser(request: NextRequest) {
-    const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
-    if (!token) return null;
-
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!url || !key) {
-        throw new Error('Supabase URL or Key is missing');
-    }
-
-    const { data: { user }, error } = await createClient(url, key).auth.getUser(token);
-    return error ? null : user;
-}
 
 /** Converts empty strings and whitespace-only strings to null */
 function nullifyEmpty(value: unknown): string | null {
@@ -87,30 +59,42 @@ async function uploadAvatarToStorage(
 // POST /api/usuarios?auth_id=xxx
 export async function POST(request: NextRequest) {
     try {
-        const supabase = getSupabase();
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+        if (!url || !key) {
+            return NextResponse.json({ error: 'Supabase URL or Key is missing no ambiente.' }, { status: 500 });
+        }
+
+        const supabase = createClient(url, key);
         const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 
         if (!ENCRYPTION_KEY) {
             console.error('[api/usuarios] ENCRYPTION_KEY env var not set');
-            return NextResponse.json({ detail: 'Configuração do servidor incompleta.' }, { status: 500 });
+            return NextResponse.json({ error: 'Configuração do servidor incompleta.' }, { status: 500 });
         }
 
         const auth_id = request.nextUrl.searchParams.get('auth_id');
         if (!auth_id) {
-            return NextResponse.json({ detail: 'auth_id é obrigatório.' }, { status: 400 });
+            return NextResponse.json({ error: 'auth_id é obrigatório.' }, { status: 400 });
         }
 
         // Validate that the caller's JWT matches the auth_id — prevents profile hijacking
-        const user = await getAuthUser(request);
-        if (!user || user.id !== auth_id) {
-            return NextResponse.json({ detail: 'Não autorizado.' }, { status: 401 });
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
+        if (!token) {
+            return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+        }
+
+        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+        if (authError || !user || user.id !== auth_id) {
+            return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
         }
 
         let body: Record<string, unknown>;
         try {
             body = await request.json();
         } catch {
-            return NextResponse.json({ detail: 'Corpo da requisição inválido.' }, { status: 400 });
+            return NextResponse.json({ error: 'Corpo da requisição inválido.' }, { status: 400 });
         }
 
         // ── Sanitize: convert empty strings to null ──────────────────────────
@@ -143,7 +127,7 @@ export async function POST(request: NextRequest) {
 
         if (error) {
             console.error('[api/usuarios] RPC error:', JSON.stringify(error));
-            return NextResponse.json({ detail: error.message }, { status: 500 });
+            return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
         return NextResponse.json({ id: data, status: 'ok' }, { status: 200 });
@@ -152,6 +136,6 @@ export async function POST(request: NextRequest) {
         // Global safety net — guarantees we ALWAYS return a JSON response
         const message = err instanceof Error ? err.message : 'Erro interno desconhecido.';
         console.error('[api/usuarios] Unhandled exception:', message);
-        return NextResponse.json({ detail: message }, { status: 500 });
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
