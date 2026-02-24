@@ -45,14 +45,18 @@ export async function GET(
             .from('usuarios')
             .select('cargo')
             .eq('id', caller.id)
-            .single();
+            .maybeSingle();
 
         if (profileError) {
             console.error('[api/usuarios/[id]] Profile fetch error:', profileError.message);
-            return NextResponse.json({ error: 'Erro ao verificar permissões.' }, { status: 500 });
+            return NextResponse.json({ error: 'Erro ao verificar permissões interna.' }, { status: 500 });
         }
 
-        if (!callerProfile || !ADMIN_CARGOS.includes(callerProfile.cargo)) {
+        if (!callerProfile) {
+            return NextResponse.json({ error: 'Erro ao verificar permissões ou perfil não encontrado.' }, { status: 403 });
+        }
+
+        if (!ADMIN_CARGOS.includes(callerProfile.cargo)) {
             return NextResponse.json({ error: 'Acesso negado. Apenas administradores podem visualizar dados sensíveis.' }, { status: 403 });
         }
 

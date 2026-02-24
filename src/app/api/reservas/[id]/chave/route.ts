@@ -35,7 +35,7 @@ export async function PATCH(
             .from('usuarios')
             .select('cargo')
             .eq('id', requesterId)
-            .single();
+            .maybeSingle();
 
         if (!adminData || !['SysAdmin', 'Síndico Geral', 'Subsíndico', 'Porteiro'].includes(adminData.cargo)) {
             return NextResponse.json({ detail: 'Sem permissão.' }, { status: 403 });
@@ -66,7 +66,7 @@ export async function PATCH(
             .update(updatePayload)
             .eq('id', id)
             .select()
-            .single();
+            .maybeSingle();
 
         if (error || !data) {
             return NextResponse.json({ error: 'Reserva não encontrada.' }, { status: 404 });

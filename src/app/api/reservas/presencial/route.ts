@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
         .from('usuarios')
         .select('cargo')
         .eq('id', porteiro_id)
-        .single();
+        .maybeSingle();
 
     if (!caller || !['Porteiro', 'Subsíndico', 'Síndico Geral', 'SysAdmin'].includes(caller.cargo)) {
         return NextResponse.json({ detail: 'Sem permissão.' }, { status: 403 });
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
             observacao: observacao.trim(),
         }])
         .select()
-        .single();
+        .maybeSingle();
 
     if (error || !data) {
         return NextResponse.json({ detail: error?.message || 'Erro ao criar reserva.' }, { status: 500 });
