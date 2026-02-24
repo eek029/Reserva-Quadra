@@ -11,20 +11,29 @@ type AnySupabaseClient = SupabaseClient<any, any, any>;
 // The RPC runs as SECURITY DEFINER so it bypasses RLS regardless of key.
 // The avatars bucket is public so the anon key can upload too.
 function getSupabase() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_ANON_KEY!
-    );
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+        throw new Error('Supabase URL or Key is missing');
+    }
+
+    return createClient(url, key);
 }
 
 /** Extract & validate JWT Bearer token — returns null if invalid/missing */
 async function getAuthUser(request: NextRequest) {
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return null;
-    const { data: { user }, error } = await createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_ANON_KEY!
-    ).auth.getUser(token);
+
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+        throw new Error('Supabase URL or Key is missing');
+    }
+
+    const { data: { user }, error } = await createClient(url, key).auth.getUser(token);
     return error ? null : user;
 }
 
