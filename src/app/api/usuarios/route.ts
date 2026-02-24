@@ -55,9 +55,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (error) {
-        console.error('Erro ao criar usuário:', error);
+        console.error('[api/usuarios] Erro ao upsert usuário:', error);
         return NextResponse.json({ detail: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ id: data, status: 'pendente' }, { status: 201 });
+    // 200 OK — RPC is an upsert; works for both first-time registration
+    // and retries (e.g. if trigger pre-created a partial row).
+    return NextResponse.json({ id: data, status: 'ok' }, { status: 200 });
 }
