@@ -19,13 +19,27 @@ interface Usuario {
     rg_encrypted?: string;
 }
 
+interface DecryptedData {
+    cpf: string | null;
+    rg: string | null;
+}
+
 interface Props {
     currentUserRole: string | undefined;
 }
 
-// Masks CPF-shaped data (never decrypted here — just visual placeholder)
-function maskField(label: string) {
-    return `${label} •••••••••••`;
+/** Masks a CPF like 123.456.789-00 → •••.456.789-•• */
+function maskCpf(cpf: string): string {
+    const nums = cpf.replace(/\D/g, '');
+    if (nums.length !== 11) return '•••.•••.•••-••';
+    return `•••.${nums.slice(3, 6)}.${nums.slice(6, 9)}-••`;
+}
+
+/** Masks an RG like 12.345.678-9 → ••.345.•••-• */
+function maskRg(rg: string): string {
+    if (rg.length < 4) return '•'.repeat(rg.length);
+    const visible = rg.slice(Math.floor(rg.length * 0.3), Math.floor(rg.length * 0.6));
+    return '•••' + visible + '•••';
 }
 
 // ─── Modal da Ficha de Auditoria ────────────────────────────────────────────
@@ -43,6 +57,9 @@ function AuditModal({
     loading: boolean;
 }) {
     const [showSensitive, setShowSensitive] = useState(false);
+    const [decrypted, setDecrypted] = useState<DecryptedData | null>(null);
+    const [decryptLoading, setDecryptLoading] = useState(false);
+    const [decryptError, setDecryptError] = useState<string | null>(null);
     const nome = user.nome_completo || user.nome || 'Sem nome';
 
     // Close on backdrop click
@@ -56,6 +73,50 @@ function AuditModal({
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
     }, [onClose]);
+
+    // Lazy-fetch decrypted data from API when "Revelar" is clicked
+    const handleToggleSensitive = async () => {
+        if (showSensitive) {
+            // Just hide — data is already cached
+            setShowSensitive(false);
+            return;
+        }
+
+        // If we already fetched, just show
+        if (decrypted) {
+            setShowSensitive(true);
+            return;
+        }
+
+        // Fetch from API
+        try {
+            setDecryptLoading(true);
+            setDecryptError(null);
+
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token || '';
+
+            const res = await fetch(`/api/usuarios/${user.id}`, {
+                headers: { 'Authorization': `Bearer ${token}` },
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || `Erro ${res.status}`);
+            }
+
+            const data = await res.json();
+            setDecrypted({
+                cpf: data.cpf || null,
+                rg: data.rg || null,
+            });
+            setShowSensitive(true);
+        } catch (err) {
+            setDecryptError(err instanceof Error ? err.message : 'Erro ao descriptografar');
+        } finally {
+            setDecryptLoading(false);
+        }
+    };
 
     return (
         /* Overlay */
@@ -104,29 +165,44 @@ function AuditModal({
                         <DataRow label="Apartamento" value={user.apartamento || user.apto || '—'} />
                     </div>
 
-                    {/* Campos sensíveis mascarados com toggle */}
+                    {/* Campos sensíveis com toggle */}
                     <div className="mt-3 rounded-xl bg-gray-50 border border-gray-100 p-3 space-y-2">
                         <div className="flex items-center justify-between mb-1">
                             <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                                 Dados Sensíveis
                             </span>
                             <button
-                                onClick={() => setShowSensitive(v => !v)}
-                                className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 transition-colors"
+                                onClick={handleToggleSensitive}
+                                disabled={decryptLoading}
+                                className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 transition-colors disabled:opacity-50"
                             >
-                                {showSensitive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                {showSensitive ? 'Ocultar' : 'Revelar'}
+                                {decryptLoading ? (
+                                    <><Loader2 className="w-4 h-4 animate-spin" /> Carregando...</>
+                                ) : showSensitive ? (
+                                    <><EyeOff className="w-4 h-4" /> Ocultar</>
+                                ) : (
+                                    <><Eye className="w-4 h-4" /> Revelar</>
+                                )}
                             </button>
                         </div>
+
+                        {decryptError && (
+                            <p className="text-xs text-red-500 bg-red-50 rounded-lg px-2 py-1">{decryptError}</p>
+                        )}
+
                         <SensitiveRow
                             label="CPF"
                             show={showSensitive}
                             hasCrypt={!!user.cpf_encrypted}
+                            rawValue={decrypted?.cpf ?? null}
+                            maskFn={maskCpf}
                         />
                         <SensitiveRow
                             label="RG"
                             show={showSensitive}
                             hasCrypt={!!user.rg_encrypted}
+                            rawValue={decrypted?.rg ?? null}
+                            maskFn={maskRg}
                         />
                     </div>
                 </div>
@@ -164,12 +240,33 @@ function DataRow({ label, value }: { label: string; value: string }) {
     );
 }
 
-function SensitiveRow({ label, show, hasCrypt }: { label: string; show: boolean; hasCrypt: boolean }) {
+function SensitiveRow({
+    label,
+    show,
+    hasCrypt,
+    rawValue,
+    maskFn,
+}: {
+    label: string;
+    show: boolean;
+    hasCrypt: boolean;
+    rawValue: string | null;
+    maskFn: (v: string) => string;
+}) {
+    if (!hasCrypt) {
+        return (
+            <div className="flex justify-between items-center py-1">
+                <span className="text-xs text-gray-500 font-medium">{label}</span>
+                <span className="text-xs text-gray-400 italic">Não informado</span>
+            </div>
+        );
+    }
+
     return (
         <div className="flex justify-between items-center py-1">
             <span className="text-xs text-gray-500 font-medium">{label}</span>
             <span className="text-xs font-mono text-gray-700">
-                {!hasCrypt ? '—' : show ? `(descriptografar no painel admin)` : maskField(label)}
+                {show && rawValue ? rawValue : (rawValue ? maskFn(rawValue) : '•••••••••••')}
             </span>
         </div>
     );
@@ -264,14 +361,12 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
                         <div className="p-4 text-center text-gray-400 text-sm">Nenhuma aprovação pendente no momento. 🎉</div>
                     ) : (
                         pendingUsers.map(pending => (
-                            /* Clique na linha abre o modal */
                             <button
                                 key={pending.id}
                                 onClick={() => setSelectedUser(pending)}
                                 className="w-full text-left p-3 flex items-center justify-between hover:bg-violet-50 rounded-lg transition-colors group"
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    {/* Avatar pequeno */}
                                     <div className="relative w-9 h-9 rounded-full overflow-hidden bg-violet-100 flex-shrink-0 border border-violet-200">
                                         {pending.foto_url ? (
                                             <Image src={pending.foto_url} alt="" fill className="object-cover" />
