@@ -7,10 +7,13 @@ export const maxDuration = 30;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySupabaseClient = SupabaseClient<any, any, any>;
 
+// Uses SUPABASE_ANON_KEY (server-side, set in .env and Vercel).
+// The RPC runs as SECURITY DEFINER so it bypasses RLS regardless of key.
+// The avatars bucket is public so the anon key can upload too.
 function getSupabase() {
     return createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
+        process.env.SUPABASE_ANON_KEY!
     );
 }
 
@@ -20,7 +23,7 @@ async function getAuthUser(request: NextRequest) {
     if (!token) return null;
     const { data: { user }, error } = await createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        process.env.SUPABASE_ANON_KEY!
     ).auth.getUser(token);
     return error ? null : user;
 }
