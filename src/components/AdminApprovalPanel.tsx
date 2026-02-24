@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle2, X } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ShieldCheck, CheckCircle2, X, User, Eye, EyeOff, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 
 interface Usuario {
@@ -13,15 +14,173 @@ interface Usuario {
     apto?: string;
     cargo?: string;
     status?: string;
+    foto_url?: string;
+    cpf_encrypted?: string;
+    rg_encrypted?: string;
 }
 
 interface Props {
     currentUserRole: string | undefined;
 }
 
+// Masks CPF-shaped data (never decrypted here — just visual placeholder)
+function maskField(label: string) {
+    return `${label} •••••••••••`;
+}
+
+// ─── Modal da Ficha de Auditoria ────────────────────────────────────────────
+function AuditModal({
+    user,
+    onClose,
+    onApprove,
+    onReject,
+    loading,
+}: {
+    user: Usuario;
+    onClose: () => void;
+    onApprove: (id: string) => Promise<void>;
+    onReject: (id: string) => Promise<void>;
+    loading: boolean;
+}) {
+    const [showSensitive, setShowSensitive] = useState(false);
+    const nome = user.nome_completo || user.nome || 'Sem nome';
+
+    // Close on backdrop click
+    const handleBackdropClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.target === e.currentTarget) onClose();
+    }, [onClose]);
+
+    // Close on ESC
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [onClose]);
+
+    return (
+        /* Overlay */
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={handleBackdropClick}
+        >
+            {/* Card */}
+            <div className="relative bg-white rounded-2xl shadow-2xl w-[90%] max-w-md max-h-[90vh] overflow-y-auto flex flex-col">
+                {/* Header roxo */}
+                <div className="bg-violet-600 px-5 py-4 flex items-center justify-between rounded-t-2xl">
+                    <h2 className="text-white font-bold text-base flex items-center gap-2">
+                        <ShieldCheck className="w-5 h-5" />
+                        Ficha de Cadastro
+                    </h2>
+                    <button
+                        onClick={onClose}
+                        className="p-1 rounded-full hover:bg-violet-500 text-white transition-colors"
+                        aria-label="Fechar"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Foto em destaque */}
+                <div className="flex flex-col items-center pt-6 pb-2 px-5">
+                    <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-violet-200 shadow-md bg-violet-50">
+                        {user.foto_url ? (
+                            <Image src={user.foto_url} alt={nome} fill className="object-cover" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                                <User className="w-10 h-10 text-violet-300" />
+                            </div>
+                        )}
+                    </div>
+                    <h3 className="mt-3 text-lg font-bold text-gray-900 text-center leading-tight">{nome}</h3>
+                    <span className="mt-1 text-xs font-bold px-3 py-1 rounded-full bg-violet-100 text-violet-700">
+                        {user.cargo || 'Morador'}
+                    </span>
+                </div>
+
+                {/* Dados */}
+                <div className="px-5 pb-4 space-y-2">
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                        <DataRow label="Torre" value={user.torre ? `Torre ${user.torre}` : '—'} />
+                        <DataRow label="Apartamento" value={user.apartamento || user.apto || '—'} />
+                    </div>
+
+                    {/* Campos sensíveis mascarados com toggle */}
+                    <div className="mt-3 rounded-xl bg-gray-50 border border-gray-100 p-3 space-y-2">
+                        <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                                Dados Sensíveis
+                            </span>
+                            <button
+                                onClick={() => setShowSensitive(v => !v)}
+                                className="flex items-center gap-1 text-xs text-violet-600 hover:text-violet-800 transition-colors"
+                            >
+                                {showSensitive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                {showSensitive ? 'Ocultar' : 'Revelar'}
+                            </button>
+                        </div>
+                        <SensitiveRow
+                            label="CPF"
+                            show={showSensitive}
+                            hasCrypt={!!user.cpf_encrypted}
+                        />
+                        <SensitiveRow
+                            label="RG"
+                            show={showSensitive}
+                            hasCrypt={!!user.rg_encrypted}
+                        />
+                    </div>
+                </div>
+
+                {/* Botões */}
+                <div className="px-5 pb-5 flex gap-3">
+                    <button
+                        disabled={loading}
+                        onClick={() => onReject(user.id)}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-red-200 text-red-600 bg-red-50 hover:bg-red-100 font-semibold text-sm transition-colors disabled:opacity-50"
+                    >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                        Reprovar
+                    </button>
+                    <button
+                        disabled={loading}
+                        onClick={() => onApprove(user.id)}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-green-200 text-green-700 bg-green-50 hover:bg-green-100 font-semibold text-sm transition-colors disabled:opacity-50"
+                    >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        Aprovar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function DataRow({ label, value }: { label: string; value: string }) {
+    return (
+        <div className="bg-white rounded-lg border border-gray-100 px-3 py-2">
+            <span className="text-[10px] text-gray-400 uppercase tracking-wide block">{label}</span>
+            <span className="text-sm font-semibold text-gray-800">{value}</span>
+        </div>
+    );
+}
+
+function SensitiveRow({ label, show, hasCrypt }: { label: string; show: boolean; hasCrypt: boolean }) {
+    return (
+        <div className="flex justify-between items-center py-1">
+            <span className="text-xs text-gray-500 font-medium">{label}</span>
+            <span className="text-xs font-mono text-gray-700">
+                {!hasCrypt ? '—' : show ? `(descriptografar no painel admin)` : maskField(label)}
+            </span>
+        </div>
+    );
+}
+
+// ─── Painel Principal ────────────────────────────────────────────────────────
 export default function AdminApprovalPanel({ currentUserRole }: Props) {
     const [pendingUsers, setPendingUsers] = useState<Usuario[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
+    const [actionLoading, setActionLoading] = useState(false);
 
     useEffect(() => {
         const fetchPending = async () => {
@@ -32,8 +191,6 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
                     .select('*')
                     .eq('status', 'pendente');
                 if (data) {
-                    // Síndico/Subsíndico só não pode ver SysAdmin/Outros Síndicos aguardando, mas deixaremos a query trazer
-                    // e filtraremos localmente se precisarmos
                     setPendingUsers(data.filter(u =>
                         currentUserRole === 'SysAdmin' || (u.cargo !== 'SysAdmin' && u.cargo !== 'Síndico Geral')
                     ));
@@ -44,69 +201,102 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
                 setIsLoading(false);
             }
         };
-
         fetchPending();
     }, [currentUserRole]);
 
     const handleApprove = async (id: string) => {
         try {
+            setActionLoading(true);
             const { error } = await supabase.from('usuarios').update({ status: 'aprovado' }).eq('id', id);
             if (error) throw error;
-            setPendingUsers(pendingUsers.filter(u => u.id !== id));
-            alert("Usuário aprovado com sucesso!");
+            setPendingUsers(prev => prev.filter(u => u.id !== id));
+            setSelectedUser(null);
         } catch (err) {
-            console.error("Erro ao aprovar:", err);
-            alert("Falha ao aprovar usuário.");
+            console.error('Erro ao aprovar:', err);
+            alert('Falha ao aprovar usuário.');
+        } finally {
+            setActionLoading(false);
         }
     };
 
     const handleReject = async (id: string) => {
         try {
+            setActionLoading(true);
             const { error } = await supabase.from('usuarios').update({ status: 'rejeitado' }).eq('id', id);
             if (error) throw error;
-            setPendingUsers(pendingUsers.filter(u => u.id !== id));
-            alert("Usuário rejeitado.");
+            setPendingUsers(prev => prev.filter(u => u.id !== id));
+            setSelectedUser(null);
         } catch (err) {
-            console.error("Erro ao rejeitar:", err);
-            alert("Falha ao rejeitar usuário.");
+            console.error('Erro ao rejeitar:', err);
+            alert('Falha ao rejeitar usuário.');
+        } finally {
+            setActionLoading(false);
         }
     };
 
     return (
-        <div className="mb-6 bg-white rounded-xl border border-violet-200 shadow-sm overflow-hidden">
-            <div className="bg-violet-50 px-4 py-3 border-b border-violet-100 flex items-center justify-between">
-                <h2 className="text-violet-800 font-semibold flex items-center text-sm">
-                    <ShieldCheck className="w-5 h-5 mr-2" />
-                    Cadastros Pendentes ({pendingUsers.length})
-                </h2>
-            </div>
-            <div className="divide-y divide-gray-100 p-2">
-                {isLoading ? (
-                    <div className="p-4 text-center text-gray-500 text-sm">Carregando fila...</div>
-                ) : pendingUsers.length === 0 ? (
-                    <div className="p-4 text-center text-gray-400 text-sm">Nenhuma aprovação pendente no momento. 🎉</div>
-                ) : (
-                    pendingUsers.map(pending => (
-                        <div key={pending.id} className="p-2 flex items-center justify-between hover:bg-gray-50 rounded-lg">
-                            <div className="px-2">
-                                <div className="flex items-center gap-2">
-                                    <p className="font-medium text-gray-900 text-sm">{pending.nome_completo || pending.nome}</p>
-                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">{pending.cargo}</span>
-                                </div>
-                                <p className="text-xs text-gray-500">Torre {pending.torre}, Apto {pending.apartamento || pending.apto}</p>
-                            </div>
-                            <div className="flex gap-2 pr-2">
-                                <button onClick={() => handleApprove(pending.id)} className="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200" title="Aprovar Modador">
-                                    <CheckCircle2 className="w-5 h-5" />
-                                </button>
-                                <button onClick={() => handleReject(pending.id)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors border border-red-200" title="Rejeitar Cadastro">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
+        <>
+            {/* Modal da ficha */}
+            {selectedUser && (
+                <AuditModal
+                    user={selectedUser}
+                    onClose={() => setSelectedUser(null)}
+                    onApprove={handleApprove}
+                    onReject={handleReject}
+                    loading={actionLoading}
+                />
+            )}
+
+            <div className="mb-6 bg-white rounded-xl border border-violet-200 shadow-sm overflow-hidden">
+                <div className="bg-violet-50 px-4 py-3 border-b border-violet-100 flex items-center justify-between">
+                    <h2 className="text-violet-800 font-semibold flex items-center text-sm">
+                        <ShieldCheck className="w-5 h-5 mr-2" />
+                        Cadastros Pendentes ({pendingUsers.length})
+                    </h2>
+                </div>
+
+                <div className="divide-y divide-gray-100 p-2">
+                    {isLoading ? (
+                        <div className="p-4 text-center text-gray-500 text-sm flex items-center justify-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" /> Carregando fila...
                         </div>
-                    ))
-                )}
+                    ) : pendingUsers.length === 0 ? (
+                        <div className="p-4 text-center text-gray-400 text-sm">Nenhuma aprovação pendente no momento. 🎉</div>
+                    ) : (
+                        pendingUsers.map(pending => (
+                            /* Clique na linha abre o modal */
+                            <button
+                                key={pending.id}
+                                onClick={() => setSelectedUser(pending)}
+                                className="w-full text-left p-3 flex items-center justify-between hover:bg-violet-50 rounded-lg transition-colors group"
+                            >
+                                <div className="flex items-center gap-3 min-w-0">
+                                    {/* Avatar pequeno */}
+                                    <div className="relative w-9 h-9 rounded-full overflow-hidden bg-violet-100 flex-shrink-0 border border-violet-200">
+                                        {pending.foto_url ? (
+                                            <Image src={pending.foto_url} alt="" fill className="object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center">
+                                                <User className="w-4 h-4 text-violet-400" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="font-medium text-gray-900 text-sm truncate">{pending.nome_completo || pending.nome}</p>
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-100 text-violet-700 flex-shrink-0">{pending.cargo}</span>
+                                        </div>
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                            {pending.torre ? `Torre ${pending.torre}` : ''}{pending.apartamento ? `, Apto ${pending.apartamento}` : ''}
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className="text-xs text-violet-500 font-medium ml-2 flex-shrink-0 group-hover:underline">Ver ficha →</span>
+                            </button>
+                        ))
+                    )}
+                </div>
             </div>
-        </div>
+        </>
     );
 }

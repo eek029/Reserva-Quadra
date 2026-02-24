@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, User, ArrowLeft, BookOpen, LogOut, Loader2 } from 'lucide-react';
+import { Bell, User, ArrowLeft, BookOpen, LogOut, Loader2, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -126,48 +126,87 @@ export default function Header() {
                 <div className="flex items-center gap-4">
                     {isDashboard ? (
                         <>
+                            {/* ── Notificações ─────────────────────────── */}
                             <div className="relative" title="Notificações">
-                                <button onClick={() => setShowNotifications(!showNotifications)} className="p-2 hover:bg-violet-500 rounded-full transition-colors relative">
+                                <button
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    className="p-2 hover:bg-violet-500 rounded-full transition-colors relative"
+                                    aria-label="Notificações"
+                                >
                                     <Bell className="w-5 h-5" />
                                     {notifications.filter(n => !n.lida).length > 0 && (
-                                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-violet-600"></span>
+                                        <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-violet-600" />
                                     )}
                                 </button>
 
-                                {/* Dropdown Notificações — anchored right, max-width capped for mobile */}
                                 {showNotifications && (
-                                    <div className="absolute right-0 mt-3 w-screen max-w-xs sm:max-w-sm bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden text-gray-900 animate-in fade-in slide-in-from-top-2">
-                                        <div className="p-3 border-b border-gray-100 font-semibold text-sm text-gray-800 bg-gray-50 flex justify-between items-center">
-                                            <span>Notificações da Administração</span>
-                                            <span className="bg-violet-100 text-violet-700 text-xs px-2 py-0.5 rounded-full">{notifications.filter(n => !n.lida).length} novas</span>
-                                        </div>
-                                        <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
-                                            {notifications.length === 0 ? (
-                                                <div className="p-4 text-sm text-gray-400 text-center italic flex flex-col items-center">
-                                                    <Bell className="w-6 h-6 mb-2 opacity-20" />
-                                                    Nenhuma nova mensagem da administração.
+                                    <>
+                                        {/* Backdrop: fecha ao clicar fora (mobile) */}
+                                        <div
+                                            className="fixed inset-0 z-40 md:hidden"
+                                            onClick={() => setShowNotifications(false)}
+                                        />
+
+                                        {/*
+                                          Mobile  → fixed, left-4 right-4, top-[4.5rem] (abaixo do header)
+                                          Desktop → absolute, right-0, anchored ao ícone
+                                        */}
+                                        <div className="
+                                            fixed left-4 right-4 top-[4.5rem] z-50
+                                            md:absolute md:left-auto md:right-0 md:top-auto md:mt-3 md:w-80
+                                            bg-white rounded-xl shadow-2xl border border-gray-100
+                                            overflow-hidden text-gray-900
+                                        ">
+                                            <div className="p-3 border-b border-gray-100 font-semibold text-sm text-gray-800 bg-gray-50 flex justify-between items-center">
+                                                <span>Notificações da Administração</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="bg-violet-100 text-violet-700 text-xs px-2 py-0.5 rounded-full">
+                                                        {notifications.filter(n => !n.lida).length} novas
+                                                    </span>
+                                                    {/* Botão fechar visível no mobile */}
+                                                    <button
+                                                        onClick={() => setShowNotifications(false)}
+                                                        className="md:hidden p-1 rounded-full hover:bg-gray-200 text-gray-500 transition-colors"
+                                                        aria-label="Fechar notificações"
+                                                    >
+                                                        <X className="w-4 h-4" />
+                                                    </button>
                                                 </div>
-                                            ) : (
-                                                notifications.map(notif => (
-                                                    <div key={notif.id} onClick={() => markAsRead(notif.id)} className={`p-4 text-sm transition-colors flex items-start gap-3 cursor-pointer ${notif.lida ? 'bg-white text-gray-500 hover:bg-gray-50' : 'bg-violet-50/50 text-gray-800 hover:bg-violet-50'}`}>
-                                                        {!notif.lida ? (
-                                                            <div className="w-2 h-2 rounded-full bg-violet-600 mt-1.5 flex-shrink-0 shadow-[0_0_5px_rgba(124,58,237,0.5)]"></div>
-                                                        ) : (
-                                                            <div className="w-2 h-2 rounded-full bg-transparent border border-gray-300 mt-1.5 flex-shrink-0"></div>
-                                                        )}
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="leading-snug break-words">{notif.mensagem}</p>
-                                                            <span className="text-[10px] text-gray-400 mt-1 block">
-                                                                {new Date(notif.created_at).toLocaleDateString('pt-BR')} às {new Date(notif.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                                            </span>
-                                                        </div>
+                                            </div>
+
+                                            <div className="divide-y divide-gray-50 max-h-72 overflow-y-auto">
+                                                {notifications.length === 0 ? (
+                                                    <div className="p-4 text-sm text-gray-400 text-center italic flex flex-col items-center">
+                                                        <Bell className="w-6 h-6 mb-2 opacity-20" />
+                                                        Nenhuma nova mensagem da administração.
                                                     </div>
-                                                ))
-                                            )}
+                                                ) : (
+                                                    notifications.map(notif => (
+                                                        <div
+                                                            key={notif.id}
+                                                            onClick={() => markAsRead(notif.id)}
+                                                            className={`p-4 text-sm transition-colors flex items-start gap-3 cursor-pointer ${notif.lida ? 'bg-white text-gray-500 hover:bg-gray-50' : 'bg-violet-50/50 text-gray-800 hover:bg-violet-50'}`}
+                                                        >
+                                                            {!notif.lida ? (
+                                                                <div className="w-2 h-2 rounded-full bg-violet-600 mt-1.5 flex-shrink-0 shadow-[0_0_5px_rgba(124,58,237,0.5)]" />
+                                                            ) : (
+                                                                <div className="w-2 h-2 rounded-full bg-transparent border border-gray-300 mt-1.5 flex-shrink-0" />
+                                                            )}
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="leading-snug break-words">{notif.mensagem}</p>
+                                                                <span className="text-[10px] text-gray-400 mt-1 block">
+                                                                    {new Date(notif.created_at).toLocaleDateString('pt-BR')} às {new Date(notif.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
                                         </div>
-                                    </div>
+                                    </>
                                 )}
                             </div>
+
                             <Link href="/regras" className="p-2 hover:bg-violet-500 rounded-full transition-colors flex flex-col items-center" title="Regras de Utilização da Quadra">
                                 <BookOpen className="w-5 h-5" />
                             </Link>
