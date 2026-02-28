@@ -291,6 +291,7 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
                     .select('*')
                     .eq('status', 'pendente');
                 if (data) {
+                    console.log('--- ADMIN APPROVAL PANEL DATA DEBUG ---', data);
                     setPendingUsers(data.filter(u =>
                         currentUserRole === 'SysAdmin' || (u.cargo !== 'SysAdmin' && u.cargo !== 'Síndico Geral')
                     ));
