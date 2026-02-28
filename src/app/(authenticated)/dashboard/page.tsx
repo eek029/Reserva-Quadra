@@ -171,11 +171,13 @@ export default function DashboardPage() {
                     if (match) {
                         match.status = 'ocupado';
                         if (reserva.id && reserva.usuario_id) {
+                            // Se "usuarios" vier como um Array (muito comum em nested selects do supabase via REST que não usam .single ou relacionamento explícito one-to-one restritivo), a gente pega o primeiro item. Caso venha o objeto direto, a gente utiliza.
+                            const dadosUsuario = Array.isArray(reserva.usuarios) ? reserva.usuarios[0] : reserva.usuarios;
                             newMap[String(match.id)] = {
                                 reserva_id: reserva.id,
                                 usuario_id: reserva.usuario_id,
                                 slot: match,
-                                usuarios: reserva.usuarios
+                                usuarios: dadosUsuario
                             };
                         }
                     }
@@ -424,7 +426,7 @@ export default function DashboardPage() {
                                             {slot.status === 'ocupado' && isAdmin && adminInfo?.usuarios && (
                                                 <div className="flex items-center gap-2 ml-2 sm:ml-4">
                                                     {adminInfo.usuarios.foto_url ? (
-                                                        <img src={adminInfo.usuarios.foto_url} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-gray-200" />
+                                                        <img src={adminInfo.usuarios.foto_url} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-gray-200" referrerPolicy="no-referrer" />
                                                     ) : (
                                                         <div className="w-8 h-8 rounded-full bg-violet-200 text-violet-700 flex items-center justify-center font-bold text-xs uppercase border border-violet-300">
                                                             {(adminInfo.usuarios.nome || adminInfo.usuarios.nome_completo || '?').charAt(0)}
