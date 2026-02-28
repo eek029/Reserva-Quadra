@@ -43,15 +43,15 @@ async function uploadAvatarToStorage(
             .upload(filePath, buffer, { contentType: mimeType, upsert: true });
 
         if (uploadError) {
-            console.error('[api/usuarios] Storage upload error:', uploadError.message);
-            return null;
+            console.error('[api/usuarios] Storage upload error:', uploadError.message, 'Falling back to save as Base64 in Database.');
+            return dataUri;
         }
 
         const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-        return urlData?.publicUrl ?? null;
+        return urlData?.publicUrl ?? dataUri;
     } catch (e) {
-        console.error('[api/usuarios] Failed to process avatar:', e);
-        return null;
+        console.error('[api/usuarios] Failed to process avatar:', e, 'Falling back to Base64 in Database.');
+        return dataUri;
     }
 }
 
