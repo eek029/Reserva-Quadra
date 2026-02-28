@@ -148,12 +148,22 @@ function AuditModal({
                     <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-violet-200 shadow-md bg-violet-50">
                         {user.foto_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={user.foto_url} alt={nome} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                                <User className="w-10 h-10 text-violet-300" />
-                            </div>
-                        )}
+                            <img
+                                src={user.foto_url}
+                                alt={nome}
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover"
+                                style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                }}
+                            />
+                        ) : null}
+                        {/* Fallback caso sem foto ou erro de load */}
+                        <div className={`w-full h-full flex items-center justify-center ${user.foto_url ? 'hidden' : ''}`}>
+                            <User className="w-10 h-10 text-violet-300" />
+                        </div>
                     </div>
                     <h3 className="mt-3 text-lg font-bold text-gray-900 text-center leading-tight">{nome}</h3>
                     <span className="mt-1 text-xs font-bold px-3 py-1 rounded-full bg-violet-100 text-violet-700">
@@ -374,12 +384,21 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
                                     <div className="relative w-9 h-9 rounded-full overflow-hidden bg-violet-100 flex-shrink-0 border border-violet-200">
                                         {pending.foto_url ? (
                                             // eslint-disable-next-line @next/next/no-img-element
-                                            <img src={pending.foto_url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center">
-                                                <User className="w-4 h-4 text-violet-400" />
-                                            </div>
-                                        )}
+                                            <img
+                                                src={pending.foto_url}
+                                                alt=""
+                                                referrerPolicy="no-referrer"
+                                                className="w-full h-full object-cover"
+                                                style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                                                onError={(e) => {
+                                                    e.currentTarget.style.display = 'none';
+                                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div className={`w-full h-full flex items-center justify-center ${pending.foto_url ? 'hidden' : ''}`}>
+                                            <User className="w-4 h-4 text-violet-400" />
+                                        </div>
                                     </div>
                                     <div className="min-w-0">
                                         <div className="flex items-center gap-2 flex-wrap">
