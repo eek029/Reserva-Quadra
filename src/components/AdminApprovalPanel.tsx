@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ShieldCheck, CheckCircle2, X, User, Eye, EyeOff, Loader2 } from 'lucide-react';
-import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 
 interface Usuario {
@@ -148,7 +147,8 @@ function AuditModal({
                 <div className="flex flex-col items-center pt-6 pb-2 px-5">
                     <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-violet-200 shadow-md bg-violet-50">
                         {user.foto_url ? (
-                            <Image src={user.foto_url} alt={nome} fill className="object-cover" />
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={user.foto_url} alt={nome} referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
                                 <User className="w-10 h-10 text-violet-300" />
@@ -372,7 +372,8 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
                                 <div className="flex items-center gap-3 min-w-0">
                                     <div className="relative w-9 h-9 rounded-full overflow-hidden bg-violet-100 flex-shrink-0 border border-violet-200">
                                         {pending.foto_url ? (
-                                            <Image src={pending.foto_url} alt="" fill className="object-cover" />
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={pending.foto_url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center">
                                                 <User className="w-4 h-4 text-violet-400" />
