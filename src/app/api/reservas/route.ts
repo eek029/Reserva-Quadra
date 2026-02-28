@@ -43,12 +43,12 @@ export async function GET(request: NextRequest) {
         const isSubsindico = perfilLogado.cargo === 'Subsíndico';
         const isAdminGlobal = perfilLogado.cargo === 'Síndico Geral' || perfilLogado.cargo === 'SysAdmin';
 
-        // Nested Select do Supabase trazendo informações do morador (nome, foto_url, torre, cargo)
+        // Nested Select do Supabase trazendo informações do morador (nome, foto_url, torre, apartamento, cargo)
         // Se for Subsíndico, forçamos o inner join (!inner) para garantir a restrição na query principal
         const joinType = isSubsindico ? '!inner' : '';
         let query = supabase
             .from('reservas')
-            .select(`*, usuarios${joinType}(nome, nome_completo, foto_url, torre, cargo)`);
+            .select(`*, usuarios${joinType}(nome, nome_completo, foto_url, torre, apartamento, cargo)`);
 
         if (data) {
             query = query.eq('data_reserva', data);

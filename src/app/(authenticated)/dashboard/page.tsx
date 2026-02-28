@@ -39,6 +39,7 @@ interface ReservaSlotAdmin {
         nome_completo?: string;
         foto_url?: string;
         torre?: string;
+        apartamento?: string;
         cargo?: string;
     } | null;
 }
@@ -433,9 +434,11 @@ export default function DashboardPage() {
                                                         <span className="text-sm font-medium text-gray-800 leading-tight">
                                                             {adminInfo.usuarios.nome || adminInfo.usuarios.nome_completo || 'Usuário Deletado'}
                                                         </span>
-                                                        {adminInfo.usuarios.torre && (
+                                                        {(adminInfo.usuarios.torre || adminInfo.usuarios.apartamento) && (
                                                             <span className="text-xs text-gray-500">
-                                                                Torre {adminInfo.usuarios.torre}
+                                                                {adminInfo.usuarios.torre ? `Torre ${adminInfo.usuarios.torre}` : ''}
+                                                                {adminInfo.usuarios.torre && adminInfo.usuarios.apartamento ? ' - ' : ''}
+                                                                {adminInfo.usuarios.apartamento ? `Apto ${adminInfo.usuarios.apartamento}` : ''}
                                                             </span>
                                                         )}
                                                     </div>
