@@ -157,7 +157,7 @@ export default function DashboardPage() {
                     // Fallback to supabase if API endpoint not up
                     const { data } = await supabase
                         .from('reservas')
-                        .select('*')
+                        .select('*, usuarios(nome, nome_completo, foto_url, torre, apartamento, cargo)')
                         .eq('data_reserva', dateStr)
                         .eq('status', 'ativa');
                     if (data) reservas = data;
