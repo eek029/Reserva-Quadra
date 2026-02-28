@@ -140,6 +140,11 @@ export default function RegisterPage() {
             return;
         }
 
+        if (!previewImage) {
+            setError('A foto de perfil é obrigatória para a validação pelo Síndico. Por favor, adicione uma foto.');
+            return;
+        }
+
         setLoading(true);
 
         try {

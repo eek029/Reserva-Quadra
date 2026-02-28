@@ -165,6 +165,11 @@ export default function CompletarCadastroPage() {
             return;
         }
 
+        if (!previewImage) {
+            setError('A foto de perfil é obrigatória para a validação pelo Síndico. Por favor, adicione uma foto clicando no ícone da câmera.');
+            return;
+        }
+
         setLoading(true);
         try {
             // Use the same encrypted API as /register to write cpf_encrypted correctly.
