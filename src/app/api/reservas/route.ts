@@ -26,14 +26,40 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ detail: 'Não autorizado.' }, { status: 401 });
         }
 
+        // Identifique o cargo do usuário logado através do perfil
+        const { data: perfilLogado, error: perfilError } = await supabase
+            .from('usuarios')
+            .select('cargo, torre')
+            .eq('id', user.id)
+            .single();
+
+        if (perfilError || !perfilLogado) {
+            return NextResponse.json({ detail: 'Perfil não encontrado.' }, { status: 403 });
+        }
+
         const data = request.nextUrl.searchParams.get('data');
 
+        // Regras de acesso e filtros condicionais
+        const isSubsindico = perfilLogado.cargo === 'Subsíndico';
+        const isAdminGlobal = perfilLogado.cargo === 'Síndico Geral' || perfilLogado.cargo === 'SysAdmin';
+
+        // Nested Select do Supabase trazendo informações do morador (nome, foto_url, torre, cargo)
+        // Se for Subsíndico, forçamos o inner join (!inner) para garantir a restrição na query principal
+        const joinType = isSubsindico ? '!inner' : '';
         let query = supabase
             .from('reservas')
-            .select('*, usuarios(nome_completo, torre, apartamento)');
+            .select(`*, usuarios${joinType}(nome, nome_completo, foto_url, torre, cargo)`);
 
         if (data) {
             query = query.eq('data_reserva', data);
+        }
+
+        if (isSubsindico && perfilLogado.torre) {
+            // Se for 'Subsíndico': Aplica filtro obrigatório para restringir visão à própria torre
+            query = query.eq('usuarios.torre', perfilLogado.torre);
+        } else if (isAdminGlobal) {
+            // Se for 'Síndico Geral' ou 'SysAdmin': Acesso total sem filtro de torre, ordenado por data e hora
+            query = query.order('data_reserva', { ascending: true }).order('hora_inicio', { ascending: true });
         }
 
         const { data: result, error } = await query;

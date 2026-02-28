@@ -30,19 +30,17 @@ interface Usuario {
     status?: string;
 }
 
-interface Reserva {
-    id?: string;
-    data_reserva?: string;
-    hora_inicio?: string;
-    hora_fim?: string;
-    status?: string;
-    usuario_id?: string;
-}
-
 interface ReservaSlotAdmin {
     reserva_id: string;
     usuario_id: string;
     slot: Slot;
+    usuarios?: {
+        nome?: string;
+        nome_completo?: string;
+        foto_url?: string;
+        torre?: string;
+        cargo?: string;
+    } | null;
 }
 
 // Helper to generate empty slots
@@ -165,13 +163,19 @@ export default function DashboardPage() {
                 }
 
                 const currentSlots = generateEmptySlots();
-                const newMap: Record<string, { reserva_id: string; usuario_id: string }> = {};
-                reservas.forEach((reserva: Reserva) => {
+                const newMap: Record<string, ReservaSlotAdmin> = {};
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                reservas.forEach((reserva: any) => {
                     const match = currentSlots.find(s => s.hora_inicio === reserva.hora_inicio);
                     if (match) {
                         match.status = 'ocupado';
                         if (reserva.id && reserva.usuario_id) {
-                            newMap[String(match.id)] = { reserva_id: reserva.id, usuario_id: reserva.usuario_id };
+                            newMap[String(match.id)] = {
+                                reserva_id: reserva.id,
+                                usuario_id: reserva.usuario_id,
+                                slot: match,
+                                usuarios: reserva.usuarios
+                            };
                         }
                     }
                 });
@@ -287,7 +291,7 @@ export default function DashboardPage() {
     const isAdmin = currentUser && ['SysAdmin', 'Síndico Geral', 'Subsíndico'].includes(currentUser.cargo || '');
 
     // Resolve reserva_id and usuario_id from fetched data for admin cancel
-    const [slotsReservaMap, setSlotsReservaMap] = useState<Record<string, { reserva_id: string; usuario_id: string }>>({});
+    const [slotsReservaMap, setSlotsReservaMap] = useState<Record<string, ReservaSlotAdmin>>({});
 
     const handleAdminCancel = async () => {
         if (!adminCancelTarget || !adminCancelMotivo.trim() || !sessionUser) return;
@@ -401,44 +405,80 @@ export default function DashboardPage() {
 
                         {/* Slots List */}
                         <div className="space-y-3">
-                            {slots.map((slot) => (
-                                <div
-                                    key={slot.id}
-                                    onClick={() => handleSlotClick(slot)}
-                                    className={`flex items-center justify-between p-4 rounded-xl border ${slot.status === 'livre'
-                                        ? 'bg-white border-violet-100 shadow-sm cursor-pointer hover:bg-violet-50'
-                                        : 'bg-gray-100 border-gray-200 text-gray-500'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <span className={`font-semibold text-lg ${slot.status === 'livre' ? 'text-violet-700' : 'text-gray-500'}`}>
-                                            {slot.time}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {slot.status === 'livre' ? (
-                                            <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full flex items-center gap-1">
-                                                <Check className="w-4 h-4" /> Livre
+                            {slots.map((slot) => {
+                                const adminInfo = slotsReservaMap[String(slot.id)];
+                                return (
+                                    <div
+                                        key={slot.id}
+                                        onClick={() => handleSlotClick(slot)}
+                                        className={`flex items-center justify-between p-4 rounded-xl border ${slot.status === 'livre'
+                                            ? 'bg-white border-violet-100 shadow-sm cursor-pointer hover:bg-violet-50'
+                                            : 'bg-gray-100 border-gray-200 text-gray-500'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <span className={`font-semibold text-lg ${slot.status === 'livre' ? 'text-violet-700' : 'text-gray-500'}`}>
+                                                {slot.time}
                                             </span>
-                                        ) : (
-                                            <>
-                                                <span className="px-3 py-1 bg-gray-200 text-gray-600 text-sm font-medium rounded-full">
-                                                    Ocupado
+                                            {slot.status === 'ocupado' && isAdmin && adminInfo?.usuarios && (
+                                                <div className="flex items-center gap-2 ml-2 sm:ml-4">
+                                                    {adminInfo.usuarios.foto_url ? (
+                                                        <img src={adminInfo.usuarios.foto_url} alt="Avatar" className="w-8 h-8 rounded-full object-cover border border-gray-200" />
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-violet-200 text-violet-700 flex items-center justify-center font-bold text-xs uppercase border border-violet-300">
+                                                            {(adminInfo.usuarios.nome || adminInfo.usuarios.nome_completo || '?').charAt(0)}
+                                                        </div>
+                                                    )}
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-medium text-gray-800 leading-tight">
+                                                            {adminInfo.usuarios.nome || adminInfo.usuarios.nome_completo || 'Usuário Deletado'}
+                                                        </span>
+                                                        {adminInfo.usuarios.torre && (
+                                                            <span className="text-xs text-gray-500">
+                                                                Torre {adminInfo.usuarios.torre}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {slot.status === 'ocupado' && isAdmin && adminInfo && !adminInfo.usuarios && (
+                                                <div className="flex items-center gap-2 ml-2 sm:ml-4 opacity-70">
+                                                    <div className="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center font-bold text-xs uppercase">
+                                                        ?
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-medium text-gray-600 leading-tight">
+                                                            Usuário Deletado
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {slot.status === 'livre' ? (
+                                                <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full flex items-center gap-1">
+                                                    <Check className="w-4 h-4" /> Livre
                                                 </span>
-                                                {isAdmin && slotsReservaMap[String(slot.id)] && (
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); const info = slotsReservaMap[String(slot.id)]; setAdminCancelTarget({ reserva_id: info.reserva_id, usuario_id: info.usuario_id, slot }); }}
-                                                        className="p-1 rounded-md bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 transition-colors"
-                                                        title="Cancelar reserva (Admin)"
-                                                    >
-                                                        <X className="w-4 h-4" />
-                                                    </button>
-                                                )}
-                                            </>
-                                        )}
+                                            ) : (
+                                                <>
+                                                    <span className="px-3 py-1 bg-gray-200 text-gray-600 text-sm font-medium rounded-full">
+                                                        Ocupado
+                                                    </span>
+                                                    {isAdmin && adminInfo && (
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); setAdminCancelTarget(adminInfo); }}
+                                                            className="p-1 rounded-md bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 transition-colors"
+                                                            title="Cancelar reserva (Admin)"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </>
                 )}
