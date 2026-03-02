@@ -145,23 +145,27 @@ function AuditModal({
 
                 {/* Foto em destaque */}
                 <div className="flex flex-col items-center pt-6 pb-2 px-5">
-                    <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-violet-200 shadow-md bg-violet-50">
+                    <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-violet-200 shadow-md bg-violet-50 flex items-center justify-center">
                         {user.foto_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                                 src={user.foto_url}
                                 alt={nome}
                                 referrerPolicy="no-referrer"
-                                className="w-full h-full object-cover"
-                                style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                                className="w-full h-full object-cover absolute inset-0"
                                 onError={(e) => {
+                                    // Remove broken image and show fallback icon
                                     e.currentTarget.style.display = 'none';
-                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                    const fallback = e.currentTarget.parentElement?.querySelector('.foto-fallback');
+                                    if (fallback) (fallback as HTMLElement).style.display = 'flex';
                                 }}
                             />
                         ) : null}
-                        {/* Fallback caso sem foto ou erro de load */}
-                        <div className={`w-full h-full flex items-center justify-center ${user.foto_url ? 'hidden' : ''}`}>
+                        {/* Fallback icon — always rendered, hidden when photo loads OK */}
+                        <div
+                            className="foto-fallback w-full h-full flex items-center justify-center"
+                            style={{ display: user.foto_url ? 'none' : 'flex' }}
+                        >
                             <User className="w-10 h-10 text-violet-300" />
                         </div>
                     </div>
@@ -298,7 +302,7 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
                 setIsLoading(true);
                 const { data } = await supabase
                     .from('usuarios')
-                    .select('*')
+                    .select('id, nome_completo, nome, torre, apartamento, apto, cargo, status, foto_url, cpf_encrypted, rg_encrypted')
                     .eq('status', 'pendente');
                 if (data) {
                     console.log('--- ADMIN APPROVAL PANEL DATA DEBUG ---', data);
@@ -381,22 +385,25 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
                                 className="w-full text-left p-3 flex items-center justify-between hover:bg-violet-50 rounded-lg transition-colors group"
                             >
                                 <div className="flex items-center gap-3 min-w-0">
-                                    <div className="relative w-9 h-9 rounded-full overflow-hidden bg-violet-100 flex-shrink-0 border border-violet-200">
+                                    <div className="relative w-9 h-9 rounded-full overflow-hidden bg-violet-100 flex-shrink-0 border border-violet-200 flex items-center justify-center">
                                         {pending.foto_url ? (
                                             // eslint-disable-next-line @next/next/no-img-element
                                             <img
                                                 src={pending.foto_url}
                                                 alt=""
                                                 referrerPolicy="no-referrer"
-                                                className="w-full h-full object-cover"
-                                                style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+                                                className="w-full h-full object-cover absolute inset-0"
                                                 onError={(e) => {
                                                     e.currentTarget.style.display = 'none';
-                                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                                    const fallback = e.currentTarget.parentElement?.querySelector('.thumb-fallback');
+                                                    if (fallback) (fallback as HTMLElement).style.display = 'flex';
                                                 }}
                                             />
                                         ) : null}
-                                        <div className={`w-full h-full flex items-center justify-center ${pending.foto_url ? 'hidden' : ''}`}>
+                                        <div
+                                            className="thumb-fallback w-full h-full flex items-center justify-center"
+                                            style={{ display: pending.foto_url ? 'none' : 'flex' }}
+                                        >
                                             <User className="w-4 h-4 text-violet-400" />
                                         </div>
                                     </div>
