@@ -34,7 +34,7 @@ export async function GET(
         if (authError || !caller) {
             return NextResponse.json({ error: 'Não autorizado. Token inválido.' }, { status: 401 });
         }
-        
+
         const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
         const { id } = params;
 
@@ -90,6 +90,73 @@ export async function GET(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
         console.error('[api/usuarios/[id]] Unhandled exception:', error);
+        return NextResponse.json({ error: error?.message || 'Erro desconhecido' }, { status: 500 });
+    }
+}
+
+// PATCH /api/usuarios/[id]
+// Atualiza status (aprovado/rejeitado) ou suspenso_ate
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!url || !serviceRoleKey) {
+            return NextResponse.json({ error: 'Configuração do servidor incompleta.' }, { status: 500 });
+        }
+
+        const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
+        if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+
+        const supabaseAdmin = createClient(url, serviceRoleKey, {
+            auth: { autoRefreshToken: false, persistSession: false }
+        });
+
+        const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+        if (authError || !caller) return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
+
+        const { data: callerProfile } = await supabaseAdmin
+            .from('usuarios')
+            .select('cargo')
+            .eq('id', caller.id)
+            .maybeSingle();
+
+        if (!callerProfile || !ADMIN_CARGOS.includes(callerProfile.cargo)) {
+            return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
+        }
+
+        const body = await request.json();
+        const ALLOWED_FIELDS = ['status', 'suspenso_ate'];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const update: Record<string, any> = {};
+        for (const key of ALLOWED_FIELDS) {
+            if (key in body) update[key] = body[key];
+        }
+
+        if (Object.keys(update).length === 0) {
+            return NextResponse.json({ error: 'Nenhum campo válido para atualizar.' }, { status: 400 });
+        }
+
+        const { error } = await supabaseAdmin
+            .from('usuarios')
+            .update(update)
+            .eq('id', params.id);
+
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+        // Audit log (fire and forget)
+        supabaseAdmin.from('audit_logs').insert({
+            perfil_id: caller.id,
+            acao: 'atualizou_usuario',
+            detalhes: { alvo_usuario_id: params.id, campos: update }
+        }).then(() => { });
+
+        return NextResponse.json({ ok: true });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
         return NextResponse.json({ error: error?.message || 'Erro desconhecido' }, { status: 500 });
     }
 }

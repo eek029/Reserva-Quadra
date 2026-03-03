@@ -300,16 +300,17 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
         const fetchPending = async () => {
             try {
                 setIsLoading(true);
-                const { data } = await supabase
-                    .from('usuarios')
-                    .select('id, nome_completo, nome, torre, apartamento, apto, cargo, status, foto_url, cpf_encrypted, rg_encrypted')
-                    .eq('status', 'pendente');
-                if (data) {
-                    console.log('--- ADMIN APPROVAL PANEL DATA DEBUG ---', data);
-                    setPendingUsers(data.filter(u =>
-                        currentUserRole === 'SysAdmin' || (u.cargo !== 'SysAdmin' && u.cargo !== 'Síndico Geral')
-                    ));
+                const { data: { session } } = await supabase.auth.getSession();
+                const token = session?.access_token || '';
+                const res = await fetch('/api/usuarios?status=pendente', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    console.error('Erro ao buscar pendentes:', await res.text());
+                    return;
                 }
+                const data: Usuario[] = await res.json();
+                setPendingUsers(data);
             } catch (err) {
                 console.error('Error fetching pending users', err);
             } finally {
@@ -322,8 +323,14 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
     const handleApprove = async (id: string) => {
         try {
             setActionLoading(true);
-            const { error } = await supabase.from('usuarios').update({ status: 'aprovado' }).eq('id', id);
-            if (error) throw error;
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token || '';
+            const res = await fetch(`/api/usuarios/${id}`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'aprovado' }),
+            });
+            if (!res.ok) throw new Error(await res.text());
             setPendingUsers(prev => prev.filter(u => u.id !== id));
             setSelectedUser(null);
         } catch (err) {
@@ -337,8 +344,14 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
     const handleReject = async (id: string) => {
         try {
             setActionLoading(true);
-            const { error } = await supabase.from('usuarios').update({ status: 'rejeitado' }).eq('id', id);
-            if (error) throw error;
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token || '';
+            const res = await fetch(`/api/usuarios/${id}`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'rejeitado' }),
+            });
+            if (!res.ok) throw new Error(await res.text());
             setPendingUsers(prev => prev.filter(u => u.id !== id));
             setSelectedUser(null);
         } catch (err) {
