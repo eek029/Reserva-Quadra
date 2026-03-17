@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { ShieldCheck, CheckCircle2, X, User, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, X, User, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface Usuario {
@@ -296,29 +296,31 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
     const [selectedUser, setSelectedUser] = useState<Usuario | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
 
-    useEffect(() => {
-        const fetchPending = async () => {
-            try {
-                setIsLoading(true);
-                const { data: { session } } = await supabase.auth.getSession();
-                const token = session?.access_token || '';
-                const res = await fetch('/api/usuarios?status=pendente', {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (!res.ok) {
-                    console.error('Erro ao buscar pendentes:', await res.text());
-                    return;
-                }
-                const data: Usuario[] = await res.json();
-                setPendingUsers(data);
-            } catch (err) {
-                console.error('Error fetching pending users', err);
-            } finally {
-                setIsLoading(false);
+    const fetchPending = useCallback(async () => {
+        try {
+            setIsLoading(true);
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token || '';
+            const res = await fetch('/api/usuarios?status=pendente', {
+                // cache: 'no-store' garante que o Next.js não retorne resultado em cache
+                headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache' }
+            });
+            if (!res.ok) {
+                console.error('Erro ao buscar pendentes:', await res.text());
+                return;
             }
-        };
-        fetchPending();
-    }, [currentUserRole]);
+            const data: Usuario[] = await res.json();
+            setPendingUsers(data);
+        } catch (err) {
+            console.error('Error fetching pending users', err);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    // Fetch ao montar — não depende de currentUserRole para não perder updates
+    useEffect(() => { fetchPending(); }, [fetchPending]);
+    void currentUserRole; // usado via Props para futuras restrições de cargo
 
     const handleApprove = async (id: string) => {
         try {
@@ -381,6 +383,14 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
                         <ShieldCheck className="w-5 h-5 mr-2" />
                         Cadastros Pendentes ({pendingUsers.length})
                     </h2>
+                    <button
+                        onClick={fetchPending}
+                        disabled={isLoading}
+                        title="Atualizar lista"
+                        className="p-1 text-violet-400 hover:text-violet-700 transition-colors disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    </button>
                 </div>
 
                 <div className="divide-y divide-gray-100 p-2">

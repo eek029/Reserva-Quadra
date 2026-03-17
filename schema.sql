@@ -278,3 +278,34 @@ CREATE POLICY "Admin atualiza solicitacao" ON public.solicitacoes_perfil
 FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.usuarios u WHERE u.id = auth.uid() AND u.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico'))
 );
+
+-- 11. Coluna motivo_cancelamento na tabela reservas
+ALTER TABLE public.reservas
+ADD COLUMN IF NOT EXISTS motivo_cancelamento TEXT;
+
+-- 12. Tabela bloqueios (bloqueio de horários por Chuva ou Manutenção)
+CREATE TABLE IF NOT EXISTS public.bloqueios (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    data DATE NOT NULL,
+    hora_inicio TIME NOT NULL,
+    hora_fim TIME NOT NULL,
+    motivo TEXT NOT NULL CHECK (motivo IN ('Chuva', 'Manutenção')),
+    criado_por UUID REFERENCES public.usuarios(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.bloqueios ENABLE ROW LEVEL SECURITY;
+
+-- Todos os usuários autenticados podem ler bloqueios (para exibir no calendário)
+CREATE POLICY "todos_leem_bloqueios" ON public.bloqueios
+    FOR SELECT USING (auth.uid() IS NOT NULL);
+
+-- Somente admins podem inserir, atualizar ou deletar bloqueios
+CREATE POLICY "admins_gerenciam_bloqueios" ON public.bloqueios
+    FOR ALL USING (
+        EXISTS (
+            SELECT 1 FROM public.usuarios u
+            WHERE u.id = auth.uid()
+            AND u.cargo IN ('Síndico Geral', 'Subsíndico', 'SysAdmin')
+        )
+    );
