@@ -432,22 +432,37 @@ export default function DashboardPage() {
     const confirmReservation = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedSlot || !currentUser) return;
-        const payload = {
-            data_reserva: dateStr,
-            hora_inicio: selectedSlot.hora_inicio + ':00',
-            hora_fim: selectedSlot.hora_fim + ':00',
-            aceite_termos: agreed,
-            usuario_id: currentUser.id,
-        };
-        const { error } = await supabase.from('reservas').insert([payload]);
-        if (!error) {
+
+        const res = await fetch('/api/reservas', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${sessionToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                data_reserva: dateStr,
+                hora_inicio: selectedSlot.hora_inicio + ':00',
+                hora_fim: selectedSlot.hora_fim + ':00',
+                aceite_termos: agreed,
+                usuario_id: currentUser.id,
+            }),
+        });
+
+        if (res.ok) {
             alert('Reserva feita com sucesso!');
+            setIsModalOpen(false);
+            setAgreed(false);
             fetchReservas();
         } else {
-            alert('Erro ao fazer reserva: ' + error.message);
+            const err = await res.json().catch(() => ({}));
+            alert(err.error || 'Erro ao fazer reserva.');
+            // Se o slot foi ocupado enquanto o modal estava aberto, fechar e atualizar o quadro
+            if (res.status === 409) {
+                setIsModalOpen(false);
+                setAgreed(false);
+                fetchReservas();
+            }
         }
-        setIsModalOpen(false);
-        setAgreed(false);
     };
 
     const navigateDate = (delta: number) => {
