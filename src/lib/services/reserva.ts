@@ -19,7 +19,7 @@ export async function listarReservas(supabase: SupabaseClient, data?: string) {
 
   let query = supabase
     .from('reservas')
-    .select(`*, usuarios(nome, nome_completo, foto_url, torre, apartamento, cargo)`)
+    .select(`*, usuarios!usuario_id(nome, nome_completo, foto_url, torre, apartamento, cargo)`)
     .eq('status', 'ativa')
 
   if (data) query = query.eq('data_reserva', data)
