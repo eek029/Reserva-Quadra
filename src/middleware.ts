@@ -25,14 +25,16 @@ export async function middleware(request: NextRequest) {
 
   const protectedPaths = ['/dashboard', '/profile', '/completar-cadastro', '/regras']
   const isProtected = protectedPaths.some(p => request.nextUrl.pathname.startsWith(p))
+  const isAuthPage = request.nextUrl.pathname.startsWith('/auth')
+  const hasCode = request.nextUrl.searchParams.has('code')
 
-  if (!user && isProtected) {
+  if (!user && isProtected && !hasCode) {
     const url = request.nextUrl.clone()
     url.pathname = '/'
     return NextResponse.redirect(url)
   }
 
-  if (user && request.nextUrl.pathname === '/') {
+  if (user && request.nextUrl.pathname === '/' && !isAuthPage) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)

@@ -101,7 +101,7 @@ ALTER TABLE public.blackout_periods ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.terms_versions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.terms_acceptance_logs ENABLE ROW LEVEL SECURITY;
 
--- Helper (SECURITY DEFINER) para evitar recursao em policies de Subsíndico
+-- Helpers (SECURITY DEFINER) para evitar recursao em policies
 CREATE OR REPLACE FUNCTION public.get_current_user_torre()
 RETURNS text
 LANGUAGE sql
@@ -112,11 +112,21 @@ AS $$
   SELECT torre FROM public.usuarios WHERE id = auth.uid();
 $$;
 
+CREATE OR REPLACE FUNCTION public.get_current_user_cargo()
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+  SELECT cargo FROM public.usuarios WHERE id = auth.uid();
+$$;
+
 -- RLS Policies: usuarios
 CREATE POLICY "select_usuarios" ON public.usuarios
     FOR SELECT
     USING (
-        (SELECT cargo FROM public.usuarios WHERE id = auth.uid()) IS DISTINCT FROM 'Subsíndico'
+        public.get_current_user_cargo() IS DISTINCT FROM 'Subsíndico'
         OR (torre IS NOT NULL AND torre = public.get_current_user_torre())
     );
 
@@ -136,7 +146,7 @@ CREATE POLICY "Admin pode atualizar qualquer perfil" ON public.usuarios
 CREATE POLICY "select_reservas" ON public.reservas
     FOR SELECT
     USING (
-        (SELECT cargo FROM public.usuarios WHERE id = auth.uid()) IS DISTINCT FROM 'Subsíndico'
+        public.get_current_user_cargo() IS DISTINCT FROM 'Subsíndico'
         OR EXISTS (
             SELECT 1 FROM public.usuarios u
             WHERE u.id = reservas.usuario_id AND u.torre = public.get_current_user_torre()
