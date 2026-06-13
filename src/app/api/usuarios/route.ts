@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRouteClient, getServiceClient } from '@/lib/supabase-server';
+import { createApiClient, getServiceClient } from '@/lib/supabase-server';
 import { listarUsuarios, criarUsuario, AppError } from '@/lib/services/usuario';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
+function getToken(request: NextRequest) {
+  const auth = request.headers.get('Authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  return auth.slice(7).trim();
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getRouteClient(() => request.cookies.getAll());
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    const token = getToken(request);
+    if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    const supabase = await createApiClient(token);
 
     const status = request.nextUrl.searchParams.get('status') ?? undefined;
     const result = await listarUsuarios(supabase, status);

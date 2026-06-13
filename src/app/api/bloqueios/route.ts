@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRouteClient, getServiceClient } from '@/lib/supabase-server';
+import { createApiClient } from '@/lib/supabase-server';
 import { listarBloqueios, criarBloqueio, AppError } from '@/lib/services/bloqueio';
 
 export const dynamic = 'force-dynamic';
 
 const ADMIN_ROLES = ['Síndico Geral', 'Subsíndico', 'SysAdmin'];
 
+function getToken(request: NextRequest) {
+  const auth = request.headers.get('Authorization');
+  if (!auth?.startsWith('Bearer ')) return null;
+  return auth.slice(7).trim();
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const supabase = getRouteClient(() => request.cookies.getAll());
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    const token = getToken(request);
+    if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    const supabase = await createApiClient(token);
 
     const data = request.nextUrl.searchParams.get('data') ?? undefined;
     const result = await listarBloqueios(supabase, data);
@@ -23,12 +29,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = getServiceClient();
-    const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
+    const token = getToken(request);
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+    const supabase = await createApiClient(token);
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
     const { data: profile } = await supabase
       .from('usuarios').select('cargo').eq('id', user.id).maybeSingle();
