@@ -1,0 +1,161 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { criarReservaSchema, cancelarReservaSchema, chaveSchema, validateReservaSchema, reservaPresencialSchema } from '@/lib/validators'
+
+export class AppError extends Error {
+  status: number
+  constructor(message: string, status: number) { super(message); this.status = status }
+}
+export class ValidationError extends AppError { constructor(m: string) { super(m, 400) } }
+export class ForbiddenError extends AppError { constructor(m: string) { super(m, 403) } }
+export class NotFoundError extends AppError { constructor(m: string) { super(m, 404) } }
+export class ConflictError extends AppError { constructor(m: string) { super(m, 409) } }
+
+export async function listarReservas(supabase: SupabaseClient, data?: string) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new AppError('Não autorizado.', 401)
+
+  const { data: perfil } = await supabase
+    .from('usuarios').select('cargo, torre').eq('id', user.id).single()
+
+  let query = supabase
+    .from('reservas')
+    .select(`*, usuarios(nome, nome_completo, foto_url, torre, apartamento, cargo)`)
+    .eq('status', 'ativa')
+
+  if (data) query = query.eq('data_reserva', data)
+
+  const isAdminGlobal = perfil?.cargo === 'Síndico Geral' || perfil?.cargo === 'SysAdmin'
+  if (isAdminGlobal) query = query.order('hora_inicio', { ascending: true })
+
+  const { data: result, error } = await query
+  if (error) throw new AppError(error.message, 500)
+  return result ?? []
+}
+
+export async function criarReserva(supabase: SupabaseClient, body: unknown) {
+  const parsed = criarReservaSchema.safeParse(body)
+  if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
+  const { data_reserva, hora_inicio, hora_fim, aceite_termos, usuario_id } = parsed.data
+
+  const { data: existente } = await supabase
+    .from('reservas').select('id')
+    .eq('data_reserva', data_reserva).eq('hora_inicio', hora_inicio).eq('status', 'ativa')
+    .limit(1)
+
+  if (existente?.length) throw new ConflictError('Este horário já está reservado.')
+
+  const { data, error } = await supabase
+    .from('reservas')
+    .insert([{ data_reserva, hora_inicio, hora_fim, aceite_termos, usuario_id, status: 'ativa' }])
+    .select().single()
+
+  if (error) throw new AppError(error.message, 500)
+  return data
+}
+
+export async function cancelarReserva(supabase: SupabaseClient, id: string, body: unknown) {
+  const parsed = cancelarReservaSchema.safeParse(body)
+  if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
+
+  const { error } = await supabase
+    .from('reservas')
+    .update({ status: 'cancelada', motivo_cancelamento: parsed.data.motivo_cancelamento })
+    .eq('id', id)
+
+  if (error) throw new AppError(error.message, 500)
+}
+
+export async function registrarChave(supabase: SupabaseClient, id: string, body: unknown, requesterId: string) {
+  const parsed = chaveSchema.safeParse(body)
+  if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
+  const { acao, ocorrencia_texto } = parsed.data
+
+  const { getTurnoAtual } = await import('@/lib/turno')
+  const agora = new Date()
+  const turno = getTurnoAtual()
+  const novaTimestamp = agora.toISOString()
+
+  const updatePayload: Record<string, string> = { turno_registro: turno }
+
+  if (acao === 'entregar') {
+    Object.assign(updatePayload, { status_chave: 'em_uso', retirada_em: novaTimestamp, entregue_por: requesterId })
+  } else {
+    Object.assign(updatePayload, { status_chave: 'concluida', devolvida_em: novaTimestamp, recebida_por: requesterId })
+    if (ocorrencia_texto) updatePayload.ocorrencia_texto = ocorrencia_texto
+  }
+
+  const { data, error } = await supabase
+    .from('reservas').update(updatePayload).eq('id', id).select().maybeSingle()
+
+  if (error || !data) throw new NotFoundError('Reserva não encontrada.')
+  return data
+}
+
+export async function criarReservaPresencial(supabase: SupabaseClient, body: unknown, requesterId: string) {
+  const parsed = reservaPresencialSchema.safeParse(body)
+  if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
+  const { observacao, hora_inicio, hora_fim } = parsed.data
+
+  const brtDate = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
+  const data_reserva = new Date(brtDate).toISOString().split('T')[0]
+
+  const { data: conflitos } = await supabase
+    .from('reservas').select('hora_inicio, hora_fim')
+    .eq('data_reserva', data_reserva).eq('status', 'ativa')
+
+  for (const r of (conflitos || [])) {
+    if (hora_inicio < r.hora_fim && hora_fim > r.hora_inicio)
+      throw new ConflictError('Horário já está ocupado.')
+  }
+
+  const { data, error } = await supabase
+    .from('reservas')
+    .insert([{
+      usuario_id: requesterId, data_reserva, hora_inicio, hora_fim,
+      status: 'ativa', status_chave: 'aguardando', aceite_termos: true, observacao,
+    }])
+    .select().maybeSingle()
+
+  if (error || !data) throw new AppError(error?.message || 'Erro ao criar reserva.', 500)
+  return data
+}
+
+export async function validarReserva(supabase: SupabaseClient, body: unknown) {
+  const parsed = validateReservaSchema.safeParse(body)
+  if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
+  const { usuario_id, data_reserva, hora_inicio, hora_fim } = parsed.data
+
+  const [h1, m1] = hora_inicio.split(':').map(Number)
+  const [h2, m2] = hora_fim.split(':').map(Number)
+  const startMins = h1 * 60 + m1
+  const endMins = h2 * 60 + m2
+
+  if (startMins < 9 * 60 || endMins > 22 * 60) throw new ValidationError('A quadra só funciona das 09h às 22h.')
+  if (startMins >= endMins) throw new ValidationError('Horário de início deve ser anterior ao fim.')
+
+  const duracao = (endMins - startMins) / 60
+  if (duracao > 2) throw new ValidationError('Uma única reserva não pode exceder 2 horas.')
+
+  const { data: reservasDia } = await supabase
+    .from('reservas').select('hora_inicio, hora_fim')
+    .eq('usuario_id', usuario_id).eq('data_reserva', data_reserva).eq('status', 'ativa')
+
+  let totalHoras = duracao
+  for (const r of (reservasDia || [])) {
+    const [rh1, rm1] = r.hora_inicio.split(':').map(Number)
+    const [rh2, rm2] = r.hora_fim.split(':').map(Number)
+    totalHoras += ((rh2 * 60 + rm2) - (rh1 * 60 + rm1)) / 60
+  }
+  if (totalHoras > 2.001) throw new ValidationError('Limite de 2 horas por dia por unidade excedido.')
+
+  const { data: overlap } = await supabase
+    .from('reservas').select('hora_inicio, hora_fim')
+    .eq('data_reserva', data_reserva).eq('status', 'ativa')
+
+  for (const r of (overlap || [])) {
+    if (hora_inicio < r.hora_fim && hora_fim > r.hora_inicio)
+      throw new ValidationError('Já existe uma reserva para este horário.')
+  }
+
+  return { status: 'valid' }
+}

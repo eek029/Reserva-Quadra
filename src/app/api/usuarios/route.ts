@@ -1,200 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getRouteClient, getServiceClient } from '@/lib/supabase-server';
+import { listarUsuarios, criarUsuario, AppError } from '@/lib/services/usuario';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AnySupabaseClient = SupabaseClient<any, any, any>;
-
-
-
-/** Converts empty strings and whitespace-only strings to null */
-function nullifyEmpty(value: unknown): string | null {
-    if (typeof value !== 'string') return null;
-    const trimmed = value.trim();
-    return trimmed === '' ? null : trimmed;
-}
-
-/**
- * Uploads a base64 data URI image to Supabase Storage and returns the public URL.
- * Returns the original value if it's already a plain URL (not base64).
- */
-async function uploadAvatarToStorage(
-    supabase: AnySupabaseClient,
-    userId: string,
-    dataUri: string
-): Promise<string | null> {
-    if (!dataUri.startsWith('data:')) return dataUri;
-
-    try {
-        const [meta, base64Data] = dataUri.split(',');
-        if (!base64Data) return null;
-
-        const mimeMatch = meta.match(/data:([^;]+);/);
-        const mimeType = mimeMatch?.[1] ?? 'image/jpeg';
-        const ext = mimeType.split('/')[1]?.split('+')[0] ?? 'jpg';
-
-        const buffer = Buffer.from(base64Data, 'base64');
-        const filePath = `avatars/${userId}.${ext}`;
-
-        const { error: uploadError } = await supabase.storage
-            .from('avatars')
-            .upload(filePath, buffer, { contentType: mimeType, upsert: true });
-
-        if (uploadError) {
-            console.error('[api/usuarios] Storage upload error:', uploadError.message, 'Falling back to save as Base64 in Database.');
-            return dataUri;
-        }
-
-        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
-        return urlData?.publicUrl ?? dataUri;
-    } catch (e) {
-        console.error('[api/usuarios] Failed to process avatar:', e, 'Falling back to Base64 in Database.');
-        return dataUri;
-    }
-}
-
-
-// GET /api/usuarios?status=pendente
-// Usa SERVICE_ROLE_KEY para bypass do RLS — somente admins podem chamar
 export async function GET(request: NextRequest) {
-    try {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  try {
+    const supabase = getRouteClient(() => request.cookies.getAll());
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
-        if (!url || !serviceRoleKey) {
-            return NextResponse.json({ error: 'Configuração do servidor incompleta.' }, { status: 500 });
-        }
-
-        const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
-        if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
-
-        const supabaseAdmin = createClient(url, serviceRoleKey, {
-            auth: { autoRefreshToken: false, persistSession: false }
-        });
-
-        const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
-        if (authError || !user) return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
-
-        const { data: callerProfile } = await supabaseAdmin
-            .from('usuarios')
-            .select('cargo, torre')
-            .eq('id', user.id)
-            .maybeSingle();
-
-        const ALLOWED = ['SysAdmin', 'Síndico Geral', 'Subsíndico', 'Porteiro'];
-        if (!callerProfile || !ALLOWED.includes(callerProfile.cargo)) {
-            return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
-        }
-
-        const status = request.nextUrl.searchParams.get('status') || 'pendente';
-
-        let query = supabaseAdmin
-            .from('usuarios')
-            .select('id, nome_completo, nome, torre, apartamento, apto, cargo, status, foto_url, cpf_encrypted, rg_encrypted')
-            .eq('status', status)
-            .order('nome_completo', { ascending: true });
-
-        // Subsíndico só vê moradores da sua torre
-        if (callerProfile.cargo === 'Subsíndico' && callerProfile.torre) {
-            query = query.eq('torre', callerProfile.torre);
-        }
-
-        // Síndico Geral não vê SysAdmin
-        if (callerProfile.cargo === 'Síndico Geral') {
-            query = query.neq('cargo', 'SysAdmin');
-        }
-
-        const { data, error } = await query;
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-
-        return NextResponse.json(data || []);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-        return NextResponse.json({ error: error?.message || 'Erro desconhecido' }, { status: 500 });
-    }
+    const status = request.nextUrl.searchParams.get('status') ?? undefined;
+    const result = await listarUsuarios(supabase, status);
+    return NextResponse.json(result);
+  } catch (e) {
+    if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
+    console.error('[api/usuarios]', e);
+    return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
+  }
 }
 
-// POST /api/usuarios?auth_id=xxx
 export async function POST(request: NextRequest) {
-    try {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        const key = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  try {
+    const supabase = getServiceClient();
+    const auth_id = request.nextUrl.searchParams.get('auth_id');
+    if (!auth_id) return NextResponse.json({ error: 'auth_id é obrigatório.' }, { status: 400 });
 
-        if (!url || !key) {
-            return NextResponse.json({ error: 'Supabase URL or Key is missing no ambiente.' }, { status: 500 });
-        }
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
+    if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
-        const supabase = createClient(url, key);
-        const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user || user.id !== auth_id)
+      return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
-        if (!ENCRYPTION_KEY) {
-            console.error('[api/usuarios] ENCRYPTION_KEY env var not set');
-            return NextResponse.json({ error: 'Configuração do servidor incompleta.' }, { status: 500 });
-        }
-
-        const auth_id = request.nextUrl.searchParams.get('auth_id');
-        if (!auth_id) {
-            return NextResponse.json({ error: 'auth_id é obrigatório.' }, { status: 400 });
-        }
-
-        // Validate that the caller's JWT matches the auth_id — prevents profile hijacking
-        const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
-        if (!token) {
-            return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
-        }
-
-        const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-        if (authError || !user || user.id !== auth_id) {
-            return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
-        }
-
-        let body: Record<string, unknown>;
-        try {
-            body = await request.json();
-        } catch {
-            return NextResponse.json({ error: 'Corpo da requisição inválido.' }, { status: 400 });
-        }
-
-        // ── Sanitize: convert empty strings to null ──────────────────────────
-        const rawFotoUrl = typeof body.foto_url === 'string' ? body.foto_url : null;
-        const rawApartamento = nullifyEmpty(body.apartamento);
-        const rawTorre = nullifyEmpty(body.torre);
-        const rawBloco = nullifyEmpty(body.bloco);
-        const rawRg = nullifyEmpty(body.rg) ?? 'Não informado';
-
-        // ── Avatar: upload base64 to Storage; never store base64 in DB ───────
-        const fotoUrl = rawFotoUrl
-            ? await uploadAvatarToStorage(supabase, auth_id, rawFotoUrl)
-            : null;
-
-        // ── Call upsert RPC ───────────────────────────────────────────────────
-        const { data, error } = await supabase.rpc('create_usuario_encrypted', {
-            p_id: auth_id,
-            p_nome_completo: body.nome_completo as string,
-            p_data_nascimento: body.data_nascimento as string,
-            p_telefone: body.telefone as string,
-            p_apartamento: rawApartamento,
-            p_torre: rawTorre,
-            p_bloco: rawBloco,
-            p_foto_url: fotoUrl,
-            p_cargo: (body.cargo as string) || 'Morador',
-            p_rg: rawRg,
-            p_cpf: body.cpf as string,
-            p_secret_key: ENCRYPTION_KEY,
-        });
-
-        if (error) {
-            console.error('[api/usuarios] RPC error:', JSON.stringify(error));
-            return NextResponse.json({ error: error.message }, { status: 500 });
-        }
-
-        return NextResponse.json({ id: data, status: 'ok' }, { status: 200 });
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-        console.error('[api/usuarios] Unhandled exception:', error);
-        return NextResponse.json({ error: error?.message || 'Erro desconhecido' }, { status: 500 });
-    }
+    const body = await request.json();
+    const result = await criarUsuario(supabase, auth_id, body);
+    return NextResponse.json(result, { status: 200 });
+  } catch (e) {
+    if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
+    console.error('[api/usuarios]', e);
+    return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
+  }
 }

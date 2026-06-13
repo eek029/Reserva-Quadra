@@ -12,11 +12,10 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(true);
-    const [isPending, setIsPending] = useState(false);
+    const [isPending, setIsPending] = useState(true);
 
     useEffect(() => {
-        const checkAuth = async () => {
+        const checkProfile = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) {
@@ -30,22 +29,16 @@ export default function DashboardLayout({
                     .eq('id', session.user.id)
                     .maybeSingle();
 
-                // Only redirect if the profile is TRULY incomplete:
-                // missing CPF (stored as cpf_encrypted) or missing cargo.
-                // Porteiro/SysAdmin have no apartment — that is expected, NOT a reason to redirect.
                 if (!userData || !userData.cpf_encrypted || !userData.cargo) {
                     router.replace('/completar-cadastro');
                     return;
                 }
 
-                // Profile complete but awaiting admin approval
                 if (userData.status?.toLowerCase() !== 'aprovado') {
                     setIsPending(true);
-                    setIsLoading(false);
                     return;
                 }
 
-                // Check for pending profile update requests
                 const { data: pendencias } = await supabase
                     .from('solicitacoes_perfil')
                     .select('id')
@@ -55,18 +48,16 @@ export default function DashboardLayout({
 
                 if (pendencias && pendencias.length > 0) {
                     setIsPending(true);
-                    setIsLoading(false);
                     return;
                 }
 
-                setIsLoading(false);
-            } catch (error) {
-                console.error("Auth error:", error);
+                setIsPending(false);
+            } catch {
                 router.replace('/');
             }
         };
 
-        checkAuth();
+        checkProfile();
 
         const { data: authListener } = supabase.auth.onAuthStateChange(
             (event, session) => {
@@ -80,15 +71,6 @@ export default function DashboardLayout({
             authListener.subscription.unsubscribe();
         };
     }, [router]);
-
-
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-600"></div>
-            </div>
-        );
-    }
 
     if (isPending) {
         return (

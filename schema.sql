@@ -1,311 +1,294 @@
--- Enable pgcrypto extension for encryption
+-- Regenerado em 13/06/2026 do banco real (19 migrations)
+-- Extensions
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- 1. Create tables
-CREATE TABLE public.usuarios (
-    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-    nome_completo TEXT NOT NULL,
-    rg_encrypted BYTEA NOT NULL,
-    cpf_encrypted BYTEA NOT NULL,
-    data_nascimento DATE NOT NULL,
-    telefone TEXT NOT NULL,
-    apartamento TEXT,
-    torre TEXT,
-    bloco TEXT,
-    foto_url TEXT,
-    cargo TEXT NOT NULL DEFAULT 'Morador',
-    status TEXT NOT NULL DEFAULT 'pendente'
+-- Tabelas
+CREATE TABLE IF NOT EXISTS public.usuarios (
+    id uuid NOT NULL PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    nome_completo text,
+    rg_encrypted bytea,
+    cpf_encrypted bytea,
+    data_nascimento date,
+    telefone text,
+    apartamento text,
+    torre text,
+    bloco text,
+    foto_url text,
+    cargo text NOT NULL DEFAULT 'Morador'::text,
+    status text NOT NULL DEFAULT 'pendente'::text
 );
 
-CREATE TABLE public.reservas (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    usuario_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
-    data_reserva DATE NOT NULL,
-    hora_inicio TIME NOT NULL,
-    hora_fim TIME NOT NULL,
-    aceite_termos BOOLEAN NOT NULL DEFAULT true,
-    versao_termos TEXT,
-    timestamp_aceite TIMESTAMPTZ DEFAULT now(),
-    status TEXT NOT NULL DEFAULT 'ativa'
+CREATE TABLE IF NOT EXISTS public.reservas (
+    id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    usuario_id uuid NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    data_reserva date NOT NULL,
+    hora_inicio time without time zone NOT NULL,
+    hora_fim time without time zone NOT NULL,
+    aceite_termos boolean NOT NULL DEFAULT true,
+    versao_termos text,
+    timestamp_aceite timestamp with time zone DEFAULT now(),
+    status text NOT NULL DEFAULT 'ativa'::text,
+    status_chave text DEFAULT 'aguardando'::text CHECK (status_chave IN ('aguardando', 'em_uso', 'concluida')),
+    retirada_em timestamp with time zone,
+    entregue_por uuid REFERENCES public.usuarios(id),
+    devolvida_em timestamp with time zone,
+    recebida_por uuid REFERENCES public.usuarios(id),
+    ocorrencia_texto text,
+    turno_registro text CHECK (turno_registro IN ('Turno Dia', 'Turno Noite')),
+    observacao text
 );
 
-CREATE TABLE public.audit_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    perfil_id UUID NOT NULL,
-    acao TEXT NOT NULL,
-    detalhes JSONB,
-    created_at TIMESTAMPTZ DEFAULT now()
+CREATE TABLE IF NOT EXISTS public.audit_logs (
+    id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    perfil_id uuid NOT NULL,
+    acao text NOT NULL,
+    detalhes jsonb,
+    created_at timestamp with time zone DEFAULT now()
 );
 
--- 2. Enable Row Level Security (RLS)
+CREATE TABLE IF NOT EXISTS public.notificacoes (
+    id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    mensagem text NOT NULL,
+    destinatario_id uuid REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    lida boolean NOT NULL DEFAULT false,
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.solicitacoes_perfil (
+    id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    usuario_id uuid NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
+    novo_nome text,
+    novo_cpf text,
+    nova_foto_url text,
+    status text NOT NULL DEFAULT 'pendente'::text CHECK (status IN ('pendente', 'aprovado', 'rejeitado')),
+    revisado_por uuid REFERENCES public.usuarios(id),
+    created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.blackout_periods (
+    id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    starts_at timestamp with time zone NOT NULL,
+    ends_at timestamp with time zone NOT NULL,
+    reason text NOT NULL,
+    created_by uuid NOT NULL REFERENCES auth.users(id),
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    CHECK (ends_at > starts_at)
+);
+
+CREATE TABLE IF NOT EXISTS public.terms_versions (
+    version text NOT NULL PRIMARY KEY,
+    content_md text NOT NULL,
+    active boolean NOT NULL DEFAULT false,
+    created_at timestamp with time zone NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.terms_acceptance_logs (
+    id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
+    reservation_id uuid NOT NULL,
+    user_id uuid NOT NULL REFERENCES auth.users(id),
+    terms_version text NOT NULL REFERENCES public.terms_versions(version),
+    accepted_at timestamp with time zone NOT NULL DEFAULT now(),
+    payload_json jsonb NOT NULL
+);
+
+-- RLS
 ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reservas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notificacoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.solicitacoes_perfil ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.blackout_periods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.terms_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.terms_acceptance_logs ENABLE ROW LEVEL SECURITY;
 
--- 3. RLS Policies
-
--- Policies for usuarios
-CREATE POLICY "Moradores podem ver seu próprio perfil" ON public.usuarios
-    FOR SELECT USING (auth.uid() = id);
-
-CREATE POLICY "Síndico Geral, Subsíndico e SysAdmin podem ver todos" ON public.usuarios
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.usuarios u
-            WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'Subsíndico', 'SysAdmin')
-        )
-    );
-
-CREATE POLICY "Usuários podem atualizar seu próprio perfil" ON public.usuarios
-    FOR UPDATE USING (auth.uid() = id);
-
-CREATE POLICY "SysAdmin pode atualizar e gerenciar qualquer perfil" ON public.usuarios
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.usuarios u
-            WHERE u.id = auth.uid() AND u.cargo = 'SysAdmin'
-        )
-    );
-
--- Policies for reservas
-CREATE POLICY "Todos podem ver reservas (para calendário)" ON public.reservas
-    FOR SELECT USING (true);
-
-CREATE POLICY "Permitir inserção de reservas" ON public.reservas
-FOR INSERT TO authenticated
-WITH CHECK (auth.uid() = usuario_id);
-
-CREATE POLICY "Usuários podem editar/cancelar suas próprias reservas" ON public.reservas
-    FOR UPDATE USING (auth.uid() = usuario_id);
-
-CREATE POLICY "Porteiros, Síndicos e SysAdmin podem gerenciar todas as reservas" ON public.reservas
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.usuarios u
-            WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'Subsíndico', 'Porteiro', 'SysAdmin')
-        )
-    );
-
--- Policies for audit_logs
-CREATE POLICY "Somente Síndico Geral e SysAdmin podem ver audit_logs" ON public.audit_logs
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.usuarios u
-            WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'SysAdmin')
-        )
-    );
-    
--- 4. RPC Functions for Encrypted Operations
-
--- RPC to create user with encrypted RG/CPF
-CREATE OR REPLACE FUNCTION create_usuario_encrypted(
-    p_id UUID,
-    p_nome_completo TEXT,
-    p_data_nascimento DATE,
-    p_telefone TEXT,
-    p_apartamento TEXT,
-    p_torre TEXT,
-    p_bloco TEXT,
-    p_foto_url TEXT,
-    p_cargo TEXT,
-    p_rg TEXT,
-    p_cpf TEXT,
-    p_secret_key TEXT
-) RETURNS UUID AS $$
-BEGIN
-    INSERT INTO public.usuarios (
-        id, nome_completo, data_nascimento, telefone, apartamento, torre, bloco, foto_url, cargo, 
-        rg_encrypted, cpf_encrypted, status
-    ) VALUES (
-        p_id, p_nome_completo, p_data_nascimento, p_telefone, p_apartamento, p_torre, p_bloco, p_foto_url, p_cargo,
-        pgp_sym_encrypt(p_rg, p_secret_key), pgp_sym_encrypt(p_cpf, p_secret_key), 'pendente'
-    );
-    RETURN p_id;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Safe decrypt function to avoid crashing on wrong key/corrupt base64 (39000 errors)
-CREATE OR REPLACE FUNCTION public.safe_decrypt(data BYTEA, key TEXT)
-RETURNS TEXT
-LANGUAGE plpgsql
+-- Helper (SECURITY DEFINER) para evitar recursao em policies de Subsíndico
+CREATE OR REPLACE FUNCTION public.get_current_user_torre()
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
 AS $$
-DECLARE
-    result TEXT;
+  SELECT torre FROM public.usuarios WHERE id = auth.uid();
+$$;
+
+-- RLS Policies: usuarios
+CREATE POLICY "select_usuarios" ON public.usuarios
+    FOR SELECT
+    USING (
+        (SELECT cargo FROM public.usuarios WHERE id = auth.uid()) IS DISTINCT FROM 'Subsíndico'
+        OR (torre IS NOT NULL AND torre = public.get_current_user_torre())
+    );
+
+CREATE POLICY "Usuario atualiza campos seguros do proprio perfil" ON public.usuarios
+    FOR UPDATE TO authenticated
+    USING (auth.uid() = id)
+    WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Admin pode atualizar qualquer perfil" ON public.usuarios
+    FOR UPDATE
+    USING (EXISTS (
+        SELECT 1 FROM public.usuarios admin
+        WHERE admin.id = auth.uid() AND admin.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico')
+    ));
+
+-- RLS Policies: reservas
+CREATE POLICY "select_reservas" ON public.reservas
+    FOR SELECT
+    USING (
+        (SELECT cargo FROM public.usuarios WHERE id = auth.uid()) IS DISTINCT FROM 'Subsíndico'
+        OR EXISTS (
+            SELECT 1 FROM public.usuarios u
+            WHERE u.id = reservas.usuario_id AND u.torre = public.get_current_user_torre()
+        )
+    );
+
+CREATE POLICY "Permitir insercao de reservas" ON public.reservas
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = usuario_id);
+
+CREATE POLICY "Usuario atualiza/cancela sua reserva" ON public.reservas
+    FOR UPDATE
+    USING (auth.uid() = usuario_id);
+
+CREATE POLICY "Porteiro e Admins gerenciam reservas (chaves)" ON public.reservas
+    FOR UPDATE
+    USING (EXISTS (
+        SELECT 1 FROM public.usuarios admin
+        WHERE admin.id = auth.uid() AND admin.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico', 'Porteiro')
+    ));
+
+CREATE POLICY "Porteiros e Sindicos gerenciam todas" ON public.reservas
+    FOR ALL
+    USING (EXISTS (
+        SELECT 1 FROM public.usuarios u
+        WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'Subsíndico', 'Porteiro')
+    ));
+
+-- RLS Policies: audit_logs
+CREATE POLICY "Somente Sindico Geral pode ver audit_logs" ON public.audit_logs
+    FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.usuarios u
+        WHERE u.id = auth.uid() AND u.cargo = 'Síndico Geral'
+    ));
+
+-- RLS Policies: notificacoes
+CREATE POLICY "Usuarios leem notificacoes" ON public.notificacoes
+    FOR SELECT
+    USING (auth.uid() IS NOT NULL AND (destinatario_id IS NULL OR destinatario_id = auth.uid()));
+
+CREATE POLICY "Usuarios marcam como lido" ON public.notificacoes
+    FOR UPDATE
+    USING (destinatario_id = auth.uid() OR destinatario_id IS NULL);
+
+CREATE POLICY "Admin cria notificacoes" ON public.notificacoes
+    FOR INSERT
+    WITH CHECK (EXISTS (
+        SELECT 1 FROM public.usuarios admin
+        WHERE admin.id = auth.uid() AND admin.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico')
+    ));
+
+-- RLS Policies: solicitacoes_perfil
+CREATE POLICY "Usuario insere propria solicitacao" ON public.solicitacoes_perfil
+    FOR INSERT TO authenticated
+    WITH CHECK (auth.uid() = usuario_id);
+
+CREATE POLICY "Usuario le sua solicitacao" ON public.solicitacoes_perfil
+    FOR SELECT
+    USING (auth.uid() = usuario_id);
+
+CREATE POLICY "Admin le todas solicitacoes" ON public.solicitacoes_perfil
+    FOR SELECT
+    USING (EXISTS (
+        SELECT 1 FROM public.usuarios u WHERE u.id = auth.uid() AND u.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico')
+    ));
+
+CREATE POLICY "Admin atualiza solicitacao" ON public.solicitacoes_perfil
+    FOR UPDATE
+    USING (EXISTS (
+        SELECT 1 FROM public.usuarios u WHERE u.id = auth.uid() AND u.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico')
+    ));
+
+-- RLS Policies: blackout_periods
+CREATE POLICY "Anyone can view blackout periods" ON public.blackout_periods
+    FOR SELECT
+    USING (true);
+
+-- RLS Policies: terms_versions
+CREATE POLICY "Anyone can view terms" ON public.terms_versions
+    FOR SELECT
+    USING (true);
+
+-- RLS Policies: terms_acceptance_logs
+CREATE POLICY "Users can view own acceptance logs" ON public.terms_acceptance_logs
+    FOR SELECT
+    USING (auth.uid() = user_id);
+
+-- Functions
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
 BEGIN
-    IF data IS NULL THEN
-        RETURN NULL;
-    END IF;
-    
-    BEGIN
-        result := pgp_sym_decrypt(data, key);
-        RETURN result;
-    EXCEPTION WHEN OTHERS THEN
-        RETURN NULL;
-    END;
+    INSERT INTO public.usuarios (id, nome_completo, foto_url, cargo, status)
+    VALUES (
+        NEW.id,
+        COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'nome', NEW.raw_user_meta_data->>'name', ''),
+        COALESCE(NEW.raw_user_meta_data->>'avatar_url', NEW.raw_user_meta_data->>'picture', NULL),
+        'Morador',
+        'pendente'
+    )
+    ON CONFLICT (id) DO NOTHING;
+    RETURN NEW;
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION get_usuario_decrypted(
-    target_id UUID,
-    secret_key TEXT
-) RETURNS TABLE (
-    id UUID,
-    nome_completo TEXT,
-    data_nascimento DATE,
-    telefone TEXT,
-    apartamento TEXT,
-    torre TEXT,
-    bloco TEXT,
-    foto_url TEXT,
-    cargo TEXT,
-    rg TEXT,
-    cpf TEXT,
-    status TEXT
-) AS $$
+CREATE OR REPLACE FUNCTION public.create_usuario_encrypted(
+    p_id uuid, p_nome_completo text, p_data_nascimento date,
+    p_telefone text, p_apartamento text, p_torre text, p_bloco text,
+    p_foto_url text, p_cargo text, p_rg text, p_cpf text
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE v_secret_key text;
 BEGIN
-    RETURN QUERY
-    SELECT 
-        u.id, u.nome_completo, u.data_nascimento, u.telefone, u.apartamento, u.torre, u.bloco, u.foto_url, u.cargo,
-        CASE WHEN u.rg_encrypted IS NULL THEN null ELSE pgp_sym_decrypt(u.rg_encrypted::bytea, secret_key) END AS rg,
-        CASE WHEN u.cpf_encrypted IS NULL THEN null ELSE pgp_sym_decrypt(u.cpf_encrypted::bytea, secret_key) END AS cpf,
-        u.status
-    FROM public.usuarios u
-    WHERE u.id = target_id;
+    SELECT decrypted_secret INTO v_secret_key FROM vault.decrypted_secrets WHERE name = 'encryption_key';
+    INSERT INTO public.usuarios (id, nome_completo, data_nascimento, telefone, apartamento, torre, bloco, foto_url, cargo, rg_encrypted, cpf_encrypted, status)
+    VALUES (p_id, p_nome_completo, p_data_nascimento, p_telefone, NULLIF(p_apartamento, ''), NULLIF(p_torre, ''), NULLIF(p_bloco, ''), NULLIF(p_foto_url, ''), COALESCE(NULLIF(p_cargo, ''), 'Morador'), pgp_sym_encrypt(COALESCE(p_rg, 'Nao informado'), v_secret_key), pgp_sym_encrypt(p_cpf, v_secret_key), 'pendente')
+    ON CONFLICT (id) DO UPDATE SET nome_completo = EXCLUDED.nome_completo, data_nascimento = EXCLUDED.data_nascimento, telefone = EXCLUDED.telefone, apartamento = NULLIF(EXCLUDED.apartamento, ''), torre = NULLIF(EXCLUDED.torre, ''), bloco = NULLIF(EXCLUDED.bloco, ''), foto_url = NULLIF(EXCLUDED.foto_url, ''), cargo = EXCLUDED.cargo, rg_encrypted = EXCLUDED.rg_encrypted, cpf_encrypted = EXCLUDED.cpf_encrypted;
+    RETURN p_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
--- 5. Profile Update Requests
-CREATE TABLE public.profile_update_requests (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    usuario_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
-    novo_nome_completo TEXT,
-    novo_cpf_encrypted BYTEA,
-    nova_foto_url TEXT,
-    status TEXT NOT NULL DEFAULT 'pendente',
-    created_at TIMESTAMPTZ DEFAULT now()
-);
+CREATE OR REPLACE FUNCTION public.get_usuario_decrypted(target_id uuid)
+RETURNS TABLE (id uuid, nome_completo text, data_nascimento date, telefone text, apartamento text, torre text, bloco text, foto_url text, cargo text, rg text, cpf text, status text)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE v_secret_key text;
+BEGIN
+    SELECT decrypted_secret INTO v_secret_key FROM vault.decrypted_secrets WHERE name = 'encryption_key';
+    RETURN QUERY SELECT u.id, u.nome_completo, u.data_nascimento, u.telefone, u.apartamento, u.torre, u.bloco, u.foto_url, u.cargo, CASE WHEN u.rg_encrypted IS NULL THEN null ELSE pgp_sym_decrypt(u.rg_encrypted::bytea, v_secret_key) END, CASE WHEN u.cpf_encrypted IS NULL THEN null ELSE pgp_sym_decrypt(u.cpf_encrypted::bytea, v_secret_key) END, u.status FROM public.usuarios u WHERE u.id = target_id;
+END;
+$$;
 
-ALTER TABLE public.profile_update_requests ENABLE ROW LEVEL SECURITY;
+CREATE OR REPLACE FUNCTION public.safe_decrypt(data bytea, key text)
+RETURNS text LANGUAGE plpgsql AS $$
+DECLARE result text;
+BEGIN
+    IF data IS NULL THEN RETURN NULL; END IF;
+    BEGIN result := pgp_sym_decrypt(data, key); RETURN result;
+    EXCEPTION WHEN OTHERS THEN RETURN NULL; END;
+END;
+$$;
 
-CREATE POLICY "Usuários podem criar suas próprias solicitações" ON public.profile_update_requests
-    FOR INSERT WITH CHECK (auth.uid() = usuario_id);
-
-CREATE POLICY "Usuários podem ver suas próprias solicitações" ON public.profile_update_requests
-    FOR SELECT USING (auth.uid() = usuario_id);
-
-CREATE POLICY "Síndicos e SysAdmin podem gerenciar solicitações" ON public.profile_update_requests
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.usuarios u
-            WHERE u.id = auth.uid() AND u.cargo IN ('Síndico Geral', 'Subsíndico', 'SysAdmin')
-        )
-    );
-
--- 6. Tabela Notificacoes
-CREATE TABLE IF NOT EXISTS public.notificacoes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    mensagem TEXT NOT NULL,
-    destinatario_id UUID REFERENCES public.usuarios(id) ON DELETE CASCADE, -- NULL means "todos"
-    lida BOOLEAN NOT NULL DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 7. Colunas de Auditoria de Chaves e Ocorrencia na tabela Reservas
-ALTER TABLE public.reservas 
-ADD COLUMN IF NOT EXISTS status_chave TEXT DEFAULT 'aguardando' CHECK (status_chave IN ('aguardando', 'em_uso', 'concluida')),
-ADD COLUMN IF NOT EXISTS retirada_em TIMESTAMPTZ,
-ADD COLUMN IF NOT EXISTS entregue_por UUID REFERENCES public.usuarios(id),
-ADD COLUMN IF NOT EXISTS devolvida_em TIMESTAMPTZ,
-ADD COLUMN IF NOT EXISTS recebida_por UUID REFERENCES public.usuarios(id),
-ADD COLUMN IF NOT EXISTS ocorrencia_texto TEXT,
-ADD COLUMN IF NOT EXISTS turno_registro TEXT CHECK (turno_registro IN ('Turno Dia', 'Turno Noite'));
-
--- 8. Ativacao RLS Adicional
-ALTER TABLE public.notificacoes ENABLE ROW LEVEL SECURITY;
-
--- 9. Novas Policies e Ajustes de Segurança (Aplicados em Produção)
--- Permitir select publico (usuários necessitam apenas estar logados para buscar-- Policies: USUARIOS
-CREATE POLICY "Permitir SELECT para usuarios" ON public.usuarios
-FOR SELECT USING (true);
-
--- Notificações
-CREATE POLICY "Usuarios leem notificacoes para eles ou para todos" ON public.notificacoes
-FOR SELECT USING (
-    auth.uid() IS NOT NULL AND (destinatario_id IS NULL OR destinatario_id = auth.uid())
-);
-
-CREATE POLICY "Usuarios podem marcar como lido" ON public.notificacoes
-FOR UPDATE USING (
-    destinatario_id = auth.uid() OR destinatario_id IS NULL
-);
-
-CREATE POLICY "Somente Admin e Sindico criam notificacoes" ON public.notificacoes
-FOR INSERT WITH CHECK (
-    EXISTS (
-        SELECT 1 FROM public.usuarios admin
-        WHERE admin.id = auth.uid() AND admin.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico')
-    )
-);
-
-
-
--- 10. Tabela: solicitacoes_perfil (fila de aprovação de dados sensíveis)
-CREATE TABLE IF NOT EXISTS public.solicitacoes_perfil (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    usuario_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
-    novo_nome TEXT,
-    novo_cpf TEXT,
-    nova_foto_url TEXT,
-    status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'aprovado', 'rejeitado')),
-    revisado_por UUID REFERENCES public.usuarios(id),
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE public.solicitacoes_perfil ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Usuario insere propria solicitacao" ON public.solicitacoes_perfil
-FOR INSERT TO authenticated WITH CHECK (auth.uid() = usuario_id);
-
-CREATE POLICY "Usuario le sua solicitacao" ON public.solicitacoes_perfil
-FOR SELECT USING (auth.uid() = usuario_id);
-
-CREATE POLICY "Admin le todas as solicitacoes" ON public.solicitacoes_perfil
-FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.usuarios u WHERE u.id = auth.uid() AND u.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico'))
-);
-
-CREATE POLICY "Admin atualiza solicitacao" ON public.solicitacoes_perfil
-FOR UPDATE USING (
-    EXISTS (SELECT 1 FROM public.usuarios u WHERE u.id = auth.uid() AND u.cargo IN ('SysAdmin', 'Síndico Geral', 'Subsíndico'))
-);
-
--- 11. Coluna motivo_cancelamento na tabela reservas
-ALTER TABLE public.reservas
-ADD COLUMN IF NOT EXISTS motivo_cancelamento TEXT;
-
--- 12. Tabela bloqueios (bloqueio de horários por Chuva ou Manutenção)
-CREATE TABLE IF NOT EXISTS public.bloqueios (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    data DATE NOT NULL,
-    hora_inicio TIME NOT NULL,
-    hora_fim TIME NOT NULL,
-    motivo TEXT NOT NULL CHECK (motivo IN ('Chuva', 'Manutenção')),
-    criado_por UUID REFERENCES public.usuarios(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE public.bloqueios ENABLE ROW LEVEL SECURITY;
-
--- Todos os usuários autenticados podem ler bloqueios (para exibir no calendário)
-CREATE POLICY "todos_leem_bloqueios" ON public.bloqueios
-    FOR SELECT USING (auth.uid() IS NOT NULL);
-
--- Somente admins podem inserir, atualizar ou deletar bloqueios
-CREATE POLICY "admins_gerenciam_bloqueios" ON public.bloqueios
-    FOR ALL USING (
-        EXISTS (
-            SELECT 1 FROM public.usuarios u
-            WHERE u.id = auth.uid()
-            AND u.cargo IN ('Síndico Geral', 'Subsíndico', 'SysAdmin')
-        )
-    );
+-- Trigger
+CREATE OR REPLACE TRIGGER on_auth_user_created
+    AFTER INSERT ON auth.users
+    FOR EACH ROW
+    EXECUTE FUNCTION public.handle_new_user();
