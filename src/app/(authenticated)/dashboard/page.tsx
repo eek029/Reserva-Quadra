@@ -146,12 +146,14 @@ function BloqueioModal({
     slots,
     dateStr,
     token,
+    refreshToken,
     onClose,
     onSuccess,
 }: {
     slots: Slot[];
     dateStr: string;
     token: string;
+    refreshToken: string;
     onClose: () => void;
     onSuccess: () => void;
 }) {
@@ -181,7 +183,7 @@ function BloqueioModal({
 
             const res = await fetch('/api/bloqueios', {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-Refresh-Token': refreshToken },
                 body: JSON.stringify({ data: dateStr, slots: slotsPayload, motivo }),
             });
 
@@ -296,6 +298,7 @@ export default function DashboardPage() {
     const [slotsReservaMap, setSlotsReservaMap] = useState<Record<string, ReservaSlotAdmin>>({});
     const [bloqueiosMap, setBloqueiosMap] = useState<Record<string, Bloqueio>>({});
     const [sessionToken, setSessionToken] = useState<string>('');
+    const [refreshToken, setRefreshToken] = useState<string>('');
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
@@ -312,6 +315,7 @@ export default function DashboardPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
                 setSessionToken(session.access_token);
+                setRefreshToken(session.refresh_token);
                 const { data: user } = await supabase
                     .from('usuarios')
                     .select('*')
@@ -329,14 +333,19 @@ export default function DashboardPage() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token || '';
+            const rt = session?.refresh_token || '';
 
-            // Buscar reservas e bloqueios em paralelo
+            const authHeaders = (t: string, r: string) => ({
+                Authorization: `Bearer ${t}`,
+                'X-Refresh-Token': r,
+            });
+
             const [reservasRes, bloqueiosRes] = await Promise.all([
                 fetch(`/api/reservas?data=${dateStr}`, {
-                    headers: { Authorization: `Bearer ${token}` },
+                    headers: authHeaders(token, rt),
                 }),
                 fetch(`/api/bloqueios?data=${dateStr}`, {
-                    headers: { Authorization: `Bearer ${token}` },
+                    headers: authHeaders(token, rt),
                 }),
             ]);
 
@@ -401,6 +410,7 @@ export default function DashboardPage() {
                 headers: {
                     Authorization: `Bearer ${sessionToken}`,
                     'Content-Type': 'application/json',
+                    'X-Refresh-Token': refreshToken,
                 },
                 body: JSON.stringify({ motivo_cancelamento: motivo }),
             });
@@ -420,7 +430,7 @@ export default function DashboardPage() {
         try {
             const res = await fetch(`/api/bloqueios/${bloqueioId}`, {
                 method: 'DELETE',
-                headers: { Authorization: `Bearer ${sessionToken}` },
+                headers: { Authorization: `Bearer ${sessionToken}`, 'X-Refresh-Token': refreshToken },
             });
             if (!res.ok) throw new Error('Erro ao remover bloqueio');
             fetchReservas();
@@ -438,6 +448,7 @@ export default function DashboardPage() {
             headers: {
                 Authorization: `Bearer ${sessionToken}`,
                 'Content-Type': 'application/json',
+                'X-Refresh-Token': refreshToken,
             },
             body: JSON.stringify({
                 data_reserva: dateStr,
@@ -681,6 +692,7 @@ export default function DashboardPage() {
                     slots={slots}
                     dateStr={dateStr}
                     token={sessionToken}
+                    refreshToken={refreshToken}
                     onClose={() => setIsBloqueioModalOpen(false)}
                     onSuccess={() => fetchReservas()}
                 />

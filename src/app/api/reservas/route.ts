@@ -16,11 +16,21 @@ function getToken(request: NextRequest) {
   return auth.slice(7).trim();
 }
 
+function getRefreshToken(request: NextRequest) {
+  return request.headers.get('X-Refresh-Token') ?? undefined;
+}
+
+function authOrThrow(request: NextRequest) {
+  const token = getToken(request);
+  if (!token) throw new AppError('Não autorizado.', 401);
+  return token;
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const token = getToken(request);
-    if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
-    const supabase = await createApiClient(token);
+    const token = authOrThrow(request);
+    const refreshToken = getRefreshToken(request);
+    const supabase = await createApiClient(token, refreshToken);
 
     const data = request.nextUrl.searchParams.get('data') ?? undefined;
     const result = await listarReservas(supabase, data);
@@ -30,9 +40,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const token = getToken(request);
-    if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
-    const supabase = await createApiClient(token);
+    const token = authOrThrow(request);
+    const refreshToken = getRefreshToken(request);
+    const supabase = await createApiClient(token, refreshToken);
 
     const body = await request.json();
     const result = await criarReserva(supabase, body);

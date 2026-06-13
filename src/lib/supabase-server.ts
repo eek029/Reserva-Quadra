@@ -11,11 +11,21 @@ export function getServiceClient() {
   })
 }
 
-export async function createApiClient(token: string): Promise<SupabaseClient> {
+export async function createApiClient(
+  token: string,
+  refreshToken?: string
+): Promise<SupabaseClient> {
   const supabase = createClient(url, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
-  const { error } = await supabase.auth.setSession({ access_token: token, refresh_token: '' })
-  if (error) throw new Error('Não autorizado.')
+
+  if (refreshToken) {
+    const { error } = await supabase.auth.setSession({ access_token: token, refresh_token: refreshToken })
+    if (error) throw new Error('Não autorizado.')
+  } else {
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+    if (error || !user) throw new Error('Não autorizado.')
+  }
+
   return supabase
 }

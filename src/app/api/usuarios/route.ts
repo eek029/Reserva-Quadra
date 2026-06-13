@@ -11,11 +11,16 @@ function getToken(request: NextRequest) {
   return auth.slice(7).trim();
 }
 
+function getRefreshToken(request: NextRequest) {
+  return request.headers.get('X-Refresh-Token') ?? undefined;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const token = getToken(request);
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
-    const supabase = await createApiClient(token);
+    const refreshToken = getRefreshToken(request);
+    const supabase = await createApiClient(token, refreshToken);
 
     const status = request.nextUrl.searchParams.get('status') ?? undefined;
     const result = await listarUsuarios(supabase, status);
