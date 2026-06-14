@@ -33,14 +33,10 @@ async function uploadAvatar(supabase: SupabaseClient, userId: string, dataUri: s
 
 const ALLOWED_CARGOS = ['SysAdmin', 'Síndico Geral', 'Subsíndico', 'Porteiro'] as const
 
-export async function listarUsuarios(supabase: SupabaseClient, status?: string) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new AppError('Não autorizado.', 401)
+export async function listarUsuarios(supabase: SupabaseClient, status?: string, callerId?: string, callerCargo?: string) {
+  if (!callerId || !callerCargo) throw new AppError('Não autorizado.', 401)
 
-  const { data: perfil } = await supabase
-    .from('usuarios').select('cargo, torre').eq('id', user.id).maybeSingle()
-
-  if (!perfil || !(ALLOWED_CARGOS as readonly string[]).includes(perfil.cargo))
+  if (!(ALLOWED_CARGOS as readonly string[]).includes(callerCargo))
     throw new ForbiddenError('Acesso negado.')
 
   const s = statusQuerySchema.safeParse(status)
@@ -52,7 +48,7 @@ export async function listarUsuarios(supabase: SupabaseClient, status?: string) 
     .eq('status', statusFilter)
     .order('nome_completo', { ascending: true })
 
-  if (perfil.cargo === 'Síndico Geral') query = query.neq('cargo', 'SysAdmin')
+  if (callerCargo === 'Síndico Geral') query = query.neq('cargo', 'SysAdmin')
 
   const { data, error } = await query
   if (error) throw new AppError(error.message, 500)

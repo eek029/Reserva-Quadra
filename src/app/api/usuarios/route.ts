@@ -1,29 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createApiClient, getServiceClient } from '@/lib/supabase-server';
+import { getServiceClient } from '@/lib/supabase-server';
 import { listarUsuarios, criarUsuario, AppError } from '@/lib/services/usuario';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-function getToken(request: NextRequest) {
-  const auth = request.headers.get('Authorization');
-  if (!auth?.startsWith('Bearer ')) return null;
-  return auth.slice(7).trim();
-}
-
-function getRefreshToken(request: NextRequest) {
-  return request.headers.get('X-Refresh-Token') ?? undefined;
-}
-
 export async function GET(request: NextRequest) {
   try {
-    const token = getToken(request);
+    const auth = request.headers.get('Authorization');
+    const token = auth?.startsWith('Bearer ') ? auth.slice(7).trim() : null;
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
-    const refreshToken = getRefreshToken(request);
-    const supabase = await createApiClient(token, refreshToken);
+
+    const supabase = getServiceClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
+
+    const { data: caller } = await supabase
+      .from('usuarios').select('cargo, torre').eq('id', user.id).maybeSingle();
+    if (!caller) return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 401 });
 
     const status = request.nextUrl.searchParams.get('status') ?? undefined;
-    const result = await listarUsuarios(supabase, status);
+    const result = await listarUsuarios(supabase, status, user.id, caller.cargo);
     return NextResponse.json(result);
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
