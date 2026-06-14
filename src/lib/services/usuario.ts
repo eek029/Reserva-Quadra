@@ -44,7 +44,7 @@ export async function listarUsuarios(supabase: SupabaseClient, status?: string, 
 
   let query = supabase
     .from('usuarios')
-    .select('id, nome_completo, nome, torre, apartamento, apto, cargo, status, foto_url, cpf_encrypted, rg_encrypted')
+    .select('id, nome_completo, torre, apartamento, cargo, status, foto_url, cpf_encrypted, rg_encrypted')
     .eq('status', statusFilter)
     .order('nome_completo', { ascending: true })
 
