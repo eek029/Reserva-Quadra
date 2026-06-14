@@ -18,6 +18,7 @@ export const criarReservaSchema = z.object({
 
 export const reservaPresencialSchema = z.object({
   observacao: z.string().min(1, 'Observação é obrigatória'),
+  telefone_contato: z.string().min(1, 'Telefone de contato é obrigatório'),
   hora_inicio: z.string().regex(timeRegex, 'Formato deve ser HH:MM'),
   hora_fim: z.string().regex(timeRegex, 'Formato deve ser HH:MM'),
 })

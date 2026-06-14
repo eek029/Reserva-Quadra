@@ -4,7 +4,7 @@ import { listarBloqueios, criarBloqueio, AppError } from '@/lib/services/bloquei
 
 export const dynamic = 'force-dynamic';
 
-const ADMIN_ROLES = ['Síndico Geral', 'Subsíndico', 'SysAdmin'];
+const ADMIN_ROLES = ['Síndico Geral', 'SysAdmin'];
 
 function getToken(request: NextRequest) {
   const auth = request.headers.get('Authorization');

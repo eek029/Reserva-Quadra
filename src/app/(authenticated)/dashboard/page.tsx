@@ -36,6 +36,8 @@ interface ReservaSlotAdmin {
     reserva_id: string;
     usuario_id: string;
     slot: Slot;
+    observacao?: string;
+    telefone_contato?: string;
     usuarios: {
         nome?: string;
         nome_completo?: string;
@@ -102,9 +104,15 @@ function CancelModal({
                         <X className="w-4 h-4" />
                     </button>
                 </div>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-gray-500 mb-1">
                     Reserva de <strong>{nome}</strong> — {info.slot.time}
                 </p>
+                {info.telefone_contato && (
+                    <p className="text-sm text-gray-500 mb-4">
+                        Contato: <strong className="text-gray-700">{info.telefone_contato}</strong>
+                        <span className="text-xs text-gray-400 ml-2">(reserva presencial)</span>
+                    </p>
+                )}
                 <form onSubmit={handleSubmit}>
                     <label className="block text-xs font-semibold text-gray-600 mb-1">
                         Motivo do cancelamento <span className="text-red-500">*</span>
@@ -385,6 +393,8 @@ export default function DashboardPage() {
                             reserva_id: reserva.id as string,
                             usuario_id: reserva.usuario_id as string,
                             slot: match,
+                            observacao: (reserva.observacao as string) || undefined,
+                            telefone_contato: (reserva.telefone_contato as string) || undefined,
                             usuarios: dadosUsuario as ReservaSlotAdmin['usuarios'],
                         };
                     }
@@ -543,8 +553,8 @@ export default function DashboardPage() {
                         <button onClick={() => navigateDate(1)} className="p-2 text-violet-600"><ChevronRight /></button>
                     </div>
 
-                    {/* Botão Bloquear Horários (só admin) */}
-                    {isAdmin && (
+                    {/* Botão Bloquear Horários (só Síndico Geral e SysAdmin) */}
+                    {isSindicoOuSysAdmin && (
                         <div className="flex justify-end mb-3">
                             <button
                                 onClick={() => setIsBloqueioModalOpen(true)}
@@ -587,25 +597,43 @@ export default function DashboardPage() {
                                         {/* Nome de quem reservou (visível só para admins) */}
                                         {slot.status === 'ocupado' && isAdmin && info?.usuarios && (
                                             <div className="flex items-center gap-2 border-l pl-4 border-gray-200">
-                                                <img
-                                                    src={info.usuarios.foto_url || '/avatar-purple.png'}
-                                                    alt="Avatar"
-                                                    referrerPolicy="no-referrer"
-                                                    className="w-8 h-8 rounded-full object-cover bg-violet-100"
-                                                    onError={(e) => { e.currentTarget.src = '/avatar-purple.png'; }}
-                                                />
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-bold text-gray-700">
-                                                        {info.usuarios.nome_completo || info.usuarios.nome}
-                                                    </span>
-                                                    {(info.usuarios.torre || info.usuarios.apartamento) && (
-                                                        <span className="text-xs text-gray-500">
-                                                            {info.usuarios.torre ? `Torre ${info.usuarios.torre}` : ''}
-                                                            {info.usuarios.torre && info.usuarios.apartamento ? ' - ' : ''}
-                                                            {info.usuarios.apartamento ? `Apto ${info.usuarios.apartamento}` : ''}
+                                                {info.observacao ? (
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-gray-700">
+                                                            {info.observacao}
                                                         </span>
-                                                    )}
-                                                </div>
+                                                        <span className="text-xs text-amber-600 font-semibold">
+                                                            Presencial — {info.usuarios.nome_completo || info.usuarios.nome}
+                                                        </span>
+                                                        {info.telefone_contato && (
+                                                            <span className="text-xs text-gray-500 mt-0.5">
+                                                                Tel: {info.telefone_contato}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <img
+                                                            src={info.usuarios.foto_url || '/avatar-purple.png'}
+                                                            alt="Avatar"
+                                                            referrerPolicy="no-referrer"
+                                                            className="w-8 h-8 rounded-full object-cover bg-violet-100"
+                                                            onError={(e) => { e.currentTarget.src = '/avatar-purple.png'; }}
+                                                        />
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-bold text-gray-700">
+                                                                {info.usuarios.nome_completo || info.usuarios.nome}
+                                                            </span>
+                                                            {(info.usuarios.torre || info.usuarios.apartamento) && (
+                                                                <span className="text-xs text-gray-500">
+                                                                    {info.usuarios.torre ? `Torre ${info.usuarios.torre}` : ''}
+                                                                    {info.usuarios.torre && info.usuarios.apartamento ? ' - ' : ''}
+                                                                    {info.usuarios.apartamento ? `Apto ${info.usuarios.apartamento}` : ''}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </>
+                                                )}
                                             </div>
                                         )}
 
@@ -631,15 +659,22 @@ export default function DashboardPage() {
                                             {isBloqueado ? 'Bloqueado' : slot.status}
                                         </span>
 
-                                        {/* Cancelar reserva (admin) */}
-                                        {isAdmin && slot.status === 'ocupado' && info && (
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); setCancelTarget(info); }}
-                                                className="p-1 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"
-                                                title="Cancelar reserva"
-                                            >
-                                                <XCircle className="w-4 h-4" />
-                                            </button>
+                                        {/* Cancelar reserva (só se permitido) */}
+                                        {slot.status === 'ocupado' && info && (
+                                            (() => {
+                                                const isSindico = currentUser.cargo === 'Síndico Geral' || currentUser.cargo === 'SysAdmin';
+                                                const isSubsindicoDaTorre = currentUser.cargo === 'Subsíndico' && info.usuarios?.torre === currentUser.torre;
+                                                if (!isSindico && !isSubsindicoDaTorre) return null;
+                                                return (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setCancelTarget(info); }}
+                                                        className="p-1 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"
+                                                        title="Cancelar reserva"
+                                                    >
+                                                        <XCircle className="w-4 h-4" />
+                                                    </button>
+                                                );
+                                            })()
                                         )}
 
                                         {/* Remover bloqueio (admin) */}

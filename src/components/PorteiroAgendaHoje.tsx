@@ -22,6 +22,14 @@ interface Reserva {
     };
 }
 
+interface Bloqueio {
+    id: string;
+    data: string;
+    hora_inicio: string;
+    hora_fim: string;
+    motivo: string;
+}
+
 
 interface Slot {
     hora_inicio: string;
@@ -50,6 +58,7 @@ function getTodayBRT(): string {
 
 export default function PorteiroAgendaHoje() {
     const [reservasHoje, setReservasHoje] = useState<Reserva[]>([]);
+    const [bloqueiosHoje, setBloqueiosHoje] = useState<Bloqueio[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [ocorrencia, setOcorrencia] = useState('');
     const [isDevolucaoModalOpen, setIsDevolucaoModalOpen] = useState(false);
@@ -59,6 +68,7 @@ export default function PorteiroAgendaHoje() {
     // ── Modal: Reserva Presencial ────────────────────────────────────────────
     const [isPresencialOpen, setIsPresencialOpen] = useState(false);
     const [observacaoPresencial, setObservacaoPresencial] = useState('');
+    const [telefonePresencial, setTelefonePresencial] = useState('');
     const [selectedSlot, setSelectedSlot] = useState('');
     const [freeSlots, setFreeSlots] = useState<Slot[]>([]);
     const [isSavingPresencial, setIsSavingPresencial] = useState(false);
@@ -75,16 +85,24 @@ export default function PorteiroAgendaHoje() {
         setIsLoading(true);
         const dateStr = getTodayBRT();
         try {
-            const { data, error } = await supabase
-                .from('reservas')
-                .select('*, usuarios:usuario_id (nome_completo, torre, apartamento, foto_url)')
-                .eq('data_reserva', dateStr)
-                .eq('status', 'ativa')
-                .order('hora_inicio', { ascending: true });
-            if (error) throw error;
-            setReservasHoje(data || []);
+            const [resReservas, resBloqueios] = await Promise.all([
+                supabase
+                    .from('reservas')
+                    .select('*, usuarios:usuario_id (nome_completo, torre, apartamento, foto_url)')
+                    .eq('data_reserva', dateStr)
+                    .eq('status', 'ativa')
+                    .order('hora_inicio', { ascending: true }),
+                supabase
+                    .from('bloqueios')
+                    .select('*')
+                    .eq('data', dateStr)
+                    .order('hora_inicio', { ascending: true }),
+            ]);
+            if (resReservas.error) throw resReservas.error;
+            setReservasHoje(resReservas.data || []);
+            setBloqueiosHoje(resBloqueios.data || []);
         } catch (error) {
-            console.error('Erro ao buscar reservas de hoje:', error);
+            console.error('Erro ao buscar dados de hoje:', error);
         } finally {
             setIsLoading(false);
         }
@@ -96,25 +114,37 @@ export default function PorteiroAgendaHoje() {
     const openPresencialModal = async () => {
         setIsPresencialOpen(true);
         setObservacaoPresencial('');
+        setTelefonePresencial('');
         setSelectedSlot('');
 
-        // Compute free slots for today
+        // Compute free slots for today (reservas + bloqueios)
         const dateStr = getTodayBRT();
-        const { data: ocupadas } = await supabase
-            .from('reservas')
-            .select('hora_inicio, hora_fim')
-            .eq('data_reserva', dateStr)
-            .eq('status', 'ativa');
+        const [resOcupadas, resBloqueios] = await Promise.all([
+            supabase
+                .from('reservas')
+                .select('hora_inicio, hora_fim')
+                .eq('data_reserva', dateStr)
+                .eq('status', 'ativa'),
+            supabase
+                .from('bloqueios')
+                .select('hora_inicio, hora_fim')
+                .eq('data', dateStr),
+        ]);
+
+        const ocupadas = [
+            ...(resOcupadas.data || []),
+            ...(resBloqueios.data || []),
+        ];
 
         const livres = ALL_SLOTS.filter(slot =>
-            !(ocupadas || []).some(r => slot.hora_inicio < r.hora_fim && slot.hora_fim > r.hora_inicio)
+            !ocupadas.some(r => slot.hora_inicio < r.hora_fim && slot.hora_fim > r.hora_inicio)
         );
         setFreeSlots(livres);
     };
 
     // ── Submit Presencial ────────────────────────────────────────────────────
     const handleConfirmarPresencial = async () => {
-        if (!observacaoPresencial.trim() || !selectedSlot || !sessionUserId) return;
+        if (!observacaoPresencial.trim() || !telefonePresencial.trim() || !selectedSlot || !sessionUserId) return;
         setIsSavingPresencial(true);
 
         const slot = ALL_SLOTS.find(s => s.hora_inicio === selectedSlot);
@@ -129,6 +159,7 @@ export default function PorteiroAgendaHoje() {
                 },
                 body: JSON.stringify({
                     observacao: observacaoPresencial.trim(),
+                    telefone_contato: telefonePresencial.trim(),
                     hora_inicio: slot.hora_inicio,
                     hora_fim: slot.hora_fim,
                 }),
@@ -195,6 +226,28 @@ export default function PorteiroAgendaHoje() {
                     <Plus className="w-4 h-4" /> Nova Reserva Presencial
                 </button>
             </div>
+
+            {/* Bloqueios list */}
+            {bloqueiosHoje.length > 0 && (
+                <div className="mb-6">
+                    <h3 className="text-sm font-semibold text-amber-700 mb-2 uppercase tracking-wide flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                        Horários Bloqueados
+                    </h3>
+                    <div className="grid gap-2">
+                        {bloqueiosHoje.map(b => (
+                            <div key={b.id} className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+                                <span className="font-mono font-bold text-amber-800 text-sm">
+                                    {b.hora_inicio.slice(0, 5)} – {b.hora_fim.slice(0, 5)}
+                                </span>
+                                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-200 text-amber-800">
+                                    {b.motivo}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Reservation list */}
             {reservasHoje.length === 0 ? (
@@ -296,6 +349,20 @@ export default function PorteiroAgendaHoje() {
                             />
                         </div>
 
+                        {/* Telefone de contato */}
+                        <div className="mb-4">
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                Telefone de Contato <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="tel"
+                                value={telefonePresencial}
+                                onChange={e => setTelefonePresencial(e.target.value)}
+                                placeholder="Ex: (11) 99999-8888"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500"
+                            />
+                        </div>
+
                         {/* Slot selector */}
                         <div className="mb-6">
                             <label className="block text-sm font-semibold text-gray-700 mb-1">Horário Disponível</label>
@@ -326,7 +393,7 @@ export default function PorteiroAgendaHoje() {
                             </button>
                             <button
                                 onClick={handleConfirmarPresencial}
-                                disabled={!observacaoPresencial.trim() || !selectedSlot || isSavingPresencial || freeSlots.length === 0}
+                                disabled={!observacaoPresencial.trim() || !telefonePresencial.trim() || !selectedSlot || isSavingPresencial || freeSlots.length === 0}
                                 className="flex-1 py-2 font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {isSavingPresencial ? (

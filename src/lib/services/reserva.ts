@@ -19,7 +19,7 @@ export async function listarReservas(supabase: SupabaseClient, data?: string) {
 
   let query = supabase
     .from('reservas')
-    .select(`*, usuarios!usuario_id(nome_completo, foto_url, torre, apartamento, cargo)`)
+    .select(`*, usuarios!usuario_id(nome_completo, foto_url, torre, apartamento, cargo), observacao, telefone_contato`)
     .eq('status', 'ativa')
 
   if (data) query = query.eq('data_reserva', data)
@@ -57,12 +57,33 @@ export async function cancelarReserva(supabase: SupabaseClient, id: string, body
   const parsed = cancelarReservaSchema.safeParse(body)
   if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
 
+  const { data: reserva, error: fetchError } = await supabase
+    .from('reservas')
+    .select('usuario_id')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (fetchError) throw new AppError(fetchError.message, 500)
+  if (!reserva) throw new AppError('Reserva não encontrada.', 404)
+
   const { error } = await supabase
     .from('reservas')
     .update({ status: 'cancelada', motivo_cancelamento: parsed.data.motivo_cancelamento })
     .eq('id', id)
 
   if (error) throw new AppError(error.message, 500)
+
+  if (reserva.usuario_id) {
+    const { error: notifError } = await supabase
+      .from('notificacoes')
+      .insert({
+        destinatario_id: reserva.usuario_id,
+        mensagem: `Sua reserva foi cancelada. Motivo: ${parsed.data.motivo_cancelamento}`,
+        lida: false,
+      })
+
+    if (notifError) console.error('[notificacao] erro ao inserir:', notifError.message)
+  }
 }
 
 export async function registrarChave(supabase: SupabaseClient, id: string, body: unknown, requesterId: string) {
@@ -94,25 +115,35 @@ export async function registrarChave(supabase: SupabaseClient, id: string, body:
 export async function criarReservaPresencial(supabase: SupabaseClient, body: unknown, requesterId: string) {
   const parsed = reservaPresencialSchema.safeParse(body)
   if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
-  const { observacao, hora_inicio, hora_fim } = parsed.data
+  const { observacao, telefone_contato, hora_inicio, hora_fim } = parsed.data
 
   const brtDate = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
   const data_reserva = new Date(brtDate).toISOString().split('T')[0]
 
-  const { data: conflitos } = await supabase
+  const { data: conflitosReserva } = await supabase
     .from('reservas').select('hora_inicio, hora_fim')
     .eq('data_reserva', data_reserva).eq('status', 'ativa')
 
-  for (const r of (conflitos || [])) {
+  for (const r of (conflitosReserva || [])) {
     if (hora_inicio < r.hora_fim && hora_fim > r.hora_inicio)
       throw new ConflictError('Horário já está ocupado.')
+  }
+
+  const { data: conflitosBloqueio } = await supabase
+    .from('bloqueios').select('hora_inicio, hora_fim')
+    .eq('data', data_reserva)
+
+  for (const b of (conflitosBloqueio || [])) {
+    if (hora_inicio < b.hora_fim && hora_fim > b.hora_inicio)
+      throw new ConflictError('Horário está bloqueado.')
   }
 
   const { data, error } = await supabase
     .from('reservas')
     .insert([{
       usuario_id: requesterId, data_reserva, hora_inicio, hora_fim,
-      status: 'ativa', status_chave: 'aguardando', aceite_termos: true, observacao,
+      status: 'ativa', status_chave: 'aguardando', aceite_termos: true,
+      observacao, telefone_contato,
     }])
     .select().maybeSingle()
 

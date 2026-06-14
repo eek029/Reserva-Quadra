@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-const ADMIN_ROLES = ['Síndico Geral', 'Subsíndico', 'SysAdmin'];
+const ADMIN_ROLES = ['Síndico Geral', 'SysAdmin'];
 
 // DELETE /api/bloqueios/[id]
 export async function DELETE(

@@ -17,10 +17,23 @@ export async function PATCH(
     if (authError || !user) return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
 
     const { data: callerProfile } = await supabase
-      .from('usuarios').select('cargo').eq('id', user.id).maybeSingle();
+      .from('usuarios').select('cargo, torre').eq('id', user.id).maybeSingle();
 
     if (!callerProfile || !['Síndico Geral', 'Subsíndico', 'SysAdmin'].includes(callerProfile.cargo))
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
+
+    // Subsíndico só pode cancelar reservas da própria torre
+    if (callerProfile.cargo === 'Subsíndico') {
+      const { data: reserva } = await supabase
+        .from('reservas').select('usuario_id').eq('id', params.id).maybeSingle();
+      if (!reserva) return NextResponse.json({ error: 'Reserva não encontrada.' }, { status: 404 });
+
+      const { data: morador } = await supabase
+        .from('usuarios').select('torre').eq('id', reserva.usuario_id).maybeSingle();
+
+      if (!morador || morador.torre !== callerProfile.torre)
+        return NextResponse.json({ error: 'Você só pode cancelar reservas da sua torre.' }, { status: 403 });
+    }
 
     const body = await request.json();
     await cancelarReserva(supabase, params.id, body);
