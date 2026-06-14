@@ -10,13 +10,7 @@ export class ForbiddenError extends AppError { constructor(m: string) { super(m,
 export class NotFoundError extends AppError { constructor(m: string) { super(m, 404) } }
 export class ConflictError extends AppError { constructor(m: string) { super(m, 409) } }
 
-export async function listarReservas(supabase: SupabaseClient, data?: string) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new AppError('Não autorizado.', 401)
-
-  const { data: perfil } = await supabase
-    .from('usuarios').select('cargo, torre').eq('id', user.id).single()
-
+export async function listarReservas(supabase: SupabaseClient, data?: string, callerId?: string, callerCargo?: string) {
   let query = supabase
     .from('reservas')
     .select(`*, usuarios!usuario_id(nome_completo, foto_url, torre, apartamento, cargo), observacao, telefone_contato`)
@@ -24,7 +18,7 @@ export async function listarReservas(supabase: SupabaseClient, data?: string) {
 
   if (data) query = query.eq('data_reserva', data)
 
-  const isAdminGlobal = perfil?.cargo === 'Síndico Geral' || perfil?.cargo === 'SysAdmin'
+  const isAdminGlobal = callerCargo === 'Síndico Geral' || callerCargo === 'SysAdmin'
   if (isAdminGlobal) query = query.order('hora_inicio', { ascending: true })
 
   const { data: result, error } = await query

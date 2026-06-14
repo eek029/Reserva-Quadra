@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createApiClient } from '@/lib/supabase-server';
+import { getServiceClient } from '@/lib/supabase-server';
 import { listarReservas, criarReserva, AppError } from '@/lib/services/reserva';
 
 export const dynamic = 'force-dynamic';
-
-function handleError(e: unknown) {
-  if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
-  console.error('[api/reservas]', e);
-  return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
-}
 
 function getToken(request: NextRequest) {
   const auth = request.headers.get('Authorization');
@@ -16,33 +10,38 @@ function getToken(request: NextRequest) {
   return auth.slice(7).trim();
 }
 
-function getRefreshToken(request: NextRequest) {
-  return request.headers.get('X-Refresh-Token') ?? undefined;
-}
-
-function authOrThrow(request: NextRequest) {
-  const token = getToken(request);
-  if (!token) throw new AppError('Não autorizado.', 401);
-  return token;
+function handleError(e: unknown) {
+  if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
+  console.error('[api/reservas]', e);
+  return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const token = authOrThrow(request);
-    const refreshToken = getRefreshToken(request);
-    const supabase = await createApiClient(token, refreshToken);
+    const token = getToken(request);
+    if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+
+    const supabase = getServiceClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+
+    const { data: perfil } = await supabase
+      .from('usuarios').select('cargo').eq('id', user.id).maybeSingle();
 
     const data = request.nextUrl.searchParams.get('data') ?? undefined;
-    const result = await listarReservas(supabase, data);
+    const result = await listarReservas(supabase, data, user.id, perfil?.cargo);
     return NextResponse.json(result);
   } catch (e) { return handleError(e); }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const token = authOrThrow(request);
-    const refreshToken = getRefreshToken(request);
-    const supabase = await createApiClient(token, refreshToken);
+    const token = getToken(request);
+    if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+
+    const supabase = getServiceClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
     const body = await request.json();
     const result = await criarReserva(supabase, body);

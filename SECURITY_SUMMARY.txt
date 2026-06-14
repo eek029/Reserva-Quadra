@@ -1,0 +1,200 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                  🔐 AUDITORIA DE SEGURANÇA - SUMÁRIO EXECUTIVO             ║
+║                         RESERVA QUADRA - 14/06/2026                        ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📊 VISÃO GERAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Risk Score:        8.2/10 (ALTO) ⚠️
+  Vulnerabilidades:  18 encontradas
+  
+  ┌─────────────────┬──────────┬────────────────────────────────────┐
+  │ Severidade      │ Qtd      │ Ação Recomendada                   │
+  ├─────────────────┼──────────┼────────────────────────────────────┤
+  │ 🔴 CRÍTICA      │ 3        │ Corrigir IMEDIATAMENTE (hoje)      │
+  │ 🟠 ALTA         │ 5        │ Corrigir esta semana               │
+  │ 🟡 MÉDIA        │ 6        │ Corrigir em sprint (2 semanas)     │
+  │ 🟢 BAIXA        │ 4        │ Melhorias recomendadas             │
+  └─────────────────┴──────────┴────────────────────────────────────┘
+
+🔴 VULNERABILIDADES CRÍTICAS (AÇÃO IMEDIATA)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  SSRF em Next.js Server Actions
+    Arquivo: package.json (Next.js 14.1.0)
+    CVSS: 9.1 (Crítica)
+    Impacto: Requisições arbitrárias do servidor
+    Fix: npm update next@latest
+    
+2️⃣  Cache Poisoning em Next.js
+    Arquivo: package.json (Next.js 14.1.0)
+    CVSS: 7.5 (Crítica)
+    Impacto: Respostas cacheadas servidas a usuários não autorizados
+    Fix: npm update next@latest
+    
+3️⃣  Autenticação Fraca em /api/reservas/presencial
+    Arquivo: src/app/api/reservas/presencial/route.ts:10-17
+    CVSS: 9.0 (Crítica)
+    Impacto: Broken Access Control - criar reservas em nome de outros
+    Fix: Usar JWT do Authorization header, não header customizado
+    
+    ❌ VULNERÁVEL:
+    const requesterId = request.headers.get('requester-id');
+    
+    ✅ CORRETO:
+    const { data: { user } } = await supabase.auth.getUser(token);
+    const requesterId = user.id;
+
+🟠 VULNERABILIDADES ALTAS (ESTA SEMANA)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+4️⃣  Dependency Vulnerabilities (flatted, glob, minimatch, picomatch)
+    Arquivo: package.json (transitive)
+    CVSS: 7.5-8.8 (Alta)
+    Impacto: DoS, RCE, ReDoS
+    Fix: npm audit fix
+    
+5️⃣  Falta de Rate Limiting
+    Arquivo: Todos os /api/* routes
+    CVSS: 7.5 (Alta)
+    Impacto: Brute force, DoS
+    Fix: Implementar com Upstash Ratelimit
+    
+6️⃣  Falta de Security Headers
+    Arquivo: next.config.mjs
+    CVSS: 7.0 (Alta)
+    Impacto: XSS, Clickjacking, MIME sniffing
+    Fix: Adicionar headers em next.config.mjs
+
+🟡 VULNERABILIDADES MÉDIAS (2 SEMANAS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+7️⃣  Audit Logging Incompleto
+    Arquivo: src/app/api/usuarios/[id]/route.ts:29-32
+    CVSS: 5.3 (Média)
+    Impacto: Logs podem falhar silenciosamente
+    Fix: Adicionar tratamento de erro
+    
+8️⃣  Falta de CSRF Protection
+    Arquivo: Todos os formulários
+    CVSS: 6.5 (Média)
+    Impacto: Requisições forjadas de sites maliciosos
+    Fix: Implementar CSRF tokens
+    
+9️⃣  Validação de Entrada Incompleta
+    Arquivo: src/lib/validators.ts
+    CVSS: 5.3 (Média)
+    Impacto: Dados inválidos podem ser processados
+    Fix: Adicionar validação de CPF/RG/Telefone
+    
+🔟 Falta de Input Size Limits
+    Arquivo: Todos os /api/* routes
+    CVSS: 5.3 (Média)
+    Impacto: DoS via payloads gigantes
+    Fix: Validar Content-Length
+
+📋 CONFORMIDADE LGPD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅ Implementado:
+     • Consentimento explícito (Cookie banner)
+     • Criptografia de dados sensíveis (AES-256)
+     • Direito de retificação (Solicitações de perfil)
+     • Política de privacidade
+     
+  ⚠️  Parcial:
+     • Logs de auditoria (incompleto)
+     • Direito de acesso (sem endpoint de export)
+     
+  ❌ Não Implementado:
+     • Direito de exclusão (right to be forgotten)
+     • Política de retenção de dados
+     • Procedimento de notificação de breach
+
+🔧 PLANO DE REMEDIAÇÃO (4 SEMANAS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SEMANA 1 (CRÍTICO):
+  ☐ Atualizar Next.js para 15.0+
+  ☐ Corrigir autenticação em /api/reservas/presencial
+  ☐ Implementar rate limiting
+  ☐ Executar npm audit fix
+
+SEMANA 2 (ALTO):
+  ☐ Adicionar security headers
+  ☐ Implementar CSRF protection
+  ☐ Melhorar audit logging
+  ☐ Validar entrada de CPF/RG/Telefone
+
+SEMANA 3 (MÉDIO):
+  ☐ Input size limits
+  ☐ Content-Type validation
+  ☐ Logger estruturado
+  ☐ Revisar RLS policies
+
+SEMANA 4 (LGPD):
+  ☐ Implementar direito de exclusão
+  ☐ Endpoint de export de dados
+  ☐ Política de retenção
+  ☐ Procedimento de breach
+
+📊 MÉTRICAS DE IMPACTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ANTES:                          DEPOIS (Alvo):
+Risk Score: 8.2/10             Risk Score: 3.5/10
+Críticas: 3                     Críticas: 0
+Altas: 5                        Altas: 0
+CVSS Médio: 7.8                CVSS Médio: 4.2
+
+💡 RECOMENDAÇÕES PRINCIPAIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. PRIORIDADE MÁXIMA: Corrigir autenticação em /api/reservas/presencial
+   → Risco: Qualquer pessoa pode criar reservas em nome de outros
+   → Tempo: 2-4 horas
+   → Impacto: Crítico
+
+2. Atualizar Next.js para versão segura
+   → Risco: SSRF e Cache Poisoning
+   → Tempo: 1-2 horas
+   → Impacto: Crítico
+
+3. Implementar rate limiting
+   → Risco: Brute force e DoS
+   → Tempo: 4-6 horas
+   → Impacto: Alto
+
+4. Adicionar security headers
+   → Risco: XSS e Clickjacking
+   → Tempo: 2-3 horas
+   → Impacto: Alto
+
+5. Implementar CSRF protection
+   → Risco: Requisições forjadas
+   → Tempo: 4-6 horas
+   → Impacto: Médio
+
+📞 PRÓXIMOS PASSOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Revisar este sumário com o time
+2. Priorizar remediação conforme plano
+3. Implementar testes de segurança no CI/CD
+4. Realizar auditoria de seguimento em 30 dias
+5. Considerar penetration testing profissional
+
+📄 DOCUMENTAÇÃO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Relatório completo: SECURITY_AUDIT_2026-06-14.md
+Data da auditoria: 14/06/2026
+Próxima auditoria: 14/09/2026 (90 dias)
+
+Auditor: Security Auditor (Claude Haiku)
+Escopo: Next.js 14 + TypeScript + Supabase + PostgreSQL
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║  ⚠️  AÇÃO IMEDIATA REQUERIDA: Corrigir vulnerabilidades críticas hoje      ║
+╚════════════════════════════════════════════════════════════════════════════╝
