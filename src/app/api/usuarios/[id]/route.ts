@@ -8,9 +8,10 @@ const ADMIN_CARGOS = ['SysAdmin', 'Síndico Geral', 'Subsíndico'];
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = getServiceClient();
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
@@ -24,11 +25,11 @@ export async function GET(
     if (!callerProfile || !ADMIN_CARGOS.includes(callerProfile.cargo))
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
 
-    const data = await getUsuarioDecrypted(supabase, params.id);
+    const data = await getUsuarioDecrypted(supabase, id);
 
     supabase.from('audit_logs').insert({
       perfil_id: caller.id, acao: 'visualizou_dados_sensiveis',
-      detalhes: { alvo_usuario_id: params.id, campos: ['rg', 'cpf'] },
+      detalhes: { alvo_usuario_id: id, campos: ['rg', 'cpf'] },
     }).then(() => {});
 
     return NextResponse.json(data);
@@ -41,9 +42,10 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const supabase = getServiceClient();
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
@@ -58,7 +60,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
 
     const body = await request.json();
-    await atualizarUsuario(supabase, params.id, caller.id, body);
+    await atualizarUsuario(supabase, id, caller.id, body);
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });

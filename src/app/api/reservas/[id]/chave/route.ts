@@ -8,9 +8,10 @@ const PERMITIDOS = ['SysAdmin', 'Síndico Geral', 'Subsíndico', 'Porteiro'];
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ detail: 'Não autorizado.' }, { status: 401 });
 
@@ -25,7 +26,7 @@ export async function PATCH(
       return NextResponse.json({ detail: 'Sem permissão.' }, { status: 403 });
 
     const body = await request.json();
-    const result = await registrarChave(supabase, params.id, body, user.id);
+    const result = await registrarChave(supabase, id, body, user.id);
     return NextResponse.json(result);
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });

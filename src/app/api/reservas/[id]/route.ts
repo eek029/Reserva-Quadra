@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
@@ -22,10 +23,9 @@ export async function PATCH(
     if (!callerProfile || !['Síndico Geral', 'Subsíndico', 'SysAdmin'].includes(callerProfile.cargo))
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
 
-    // Subsíndico só pode cancelar reservas da própria torre
     if (callerProfile.cargo === 'Subsíndico') {
       const { data: reserva } = await supabase
-        .from('reservas').select('usuario_id').eq('id', params.id).maybeSingle();
+        .from('reservas').select('usuario_id').eq('id', id).maybeSingle();
       if (!reserva) return NextResponse.json({ error: 'Reserva não encontrada.' }, { status: 404 });
 
       const { data: morador } = await supabase
@@ -36,7 +36,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    await cancelarReserva(supabase, params.id, body);
+    await cancelarReserva(supabase, id, body);
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
