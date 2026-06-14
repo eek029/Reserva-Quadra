@@ -23,16 +23,18 @@ export async function criarBloqueio(supabase: SupabaseClient, userId: string, bo
   const { error: insertError } = await supabase.from('bloqueios').insert(bloqueios)
   if (insertError) throw new AppError(insertError.message, 500)
 
-  for (const slot of slots) {
-    const { data: conflitos } = await supabase
-      .from('reservas').select('id')
-      .eq('data_reserva', data).eq('hora_inicio', slot.hora_inicio).eq('status', 'ativa')
+  const { data: todasReservas } = await supabase
+    .from('reservas').select('id, hora_inicio, hora_fim')
+    .eq('data_reserva', data).eq('status', 'ativa')
 
-    if (conflitos?.length) {
-      await supabase.from('reservas')
-        .update({ status: 'cancelada', motivo_cancelamento: `Bloqueado — ${motivo}` })
-        .in('id', conflitos.map(r => r.id))
-    }
+  const conflitos = (todasReservas || []).filter(r =>
+    slots.some(s => s.hora_inicio < r.hora_fim && r.hora_inicio < s.hora_fim)
+  )
+
+  if (conflitos.length) {
+    await supabase.from('reservas')
+      .update({ status: 'cancelada', motivo_cancelamento: `Bloqueado — ${motivo}` })
+      .in('id', conflitos.map(r => r.id))
   }
 
   return { ok: true }

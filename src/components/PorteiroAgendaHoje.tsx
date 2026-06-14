@@ -14,6 +14,8 @@ interface Reserva {
     status: string;
     usuario_id: string;
     status_chave: string;
+    observacao?: string;
+    telefone_contato?: string;
     usuarios: {
         nome_completo: string;
         torre: string;
@@ -270,10 +272,26 @@ export default function PorteiroAgendaHoje() {
                                     )}
                                 </div>
                                 <div>
-                                    <p className="font-bold text-gray-900 leading-tight">{res.usuarios?.nome_completo}</p>
-                                    <p className="text-xs font-semibold text-violet-700 bg-violet-100 inline-block px-2 py-0.5 rounded-full mt-1">
-                                        Torre {res.usuarios?.torre} - Apto {res.usuarios?.apartamento}
-                                    </p>
+                                    {res.observacao ? (
+                                        <>
+                                            <p className="font-bold text-gray-900 leading-tight">{res.observacao}</p>
+                                            <p className="text-xs text-amber-600 font-semibold mt-0.5">
+                                                Presencial
+                                            </p>
+                                            {res.telefone_contato && (
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    Tel: {res.telefone_contato}
+                                                </p>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="font-bold text-gray-900 leading-tight">{res.usuarios?.nome_completo}</p>
+                                            <p className="text-xs font-semibold text-violet-700 bg-violet-100 inline-block px-2 py-0.5 rounded-full mt-1">
+                                                Torre {res.usuarios?.torre} - Apto {res.usuarios?.apartamento}
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
