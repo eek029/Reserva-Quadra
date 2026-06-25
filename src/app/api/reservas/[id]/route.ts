@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { cancelarReserva, AppError } from '@/lib/services/reserva';
+import { createRateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const rl = sensitiveLimiter.check(request);
+    if (rl) return rl;
     const { id } = await params;
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });

@@ -33,7 +33,7 @@ async function uploadAvatar(supabase: SupabaseClient, userId: string, dataUri: s
 
 const ALLOWED_CARGOS = ['SysAdmin', 'Síndico Geral', 'Subsíndico', 'Porteiro'] as const
 
-export async function listarUsuarios(supabase: SupabaseClient, status?: string, callerId?: string, callerCargo?: string) {
+export async function listarUsuarios(supabase: SupabaseClient, status?: string, callerId?: string, callerCargo?: string, callerTorre?: string) {
   if (!callerId || !callerCargo) throw new AppError('Não autorizado.', 401)
 
   if (!(ALLOWED_CARGOS as readonly string[]).includes(callerCargo))
@@ -48,7 +48,11 @@ export async function listarUsuarios(supabase: SupabaseClient, status?: string, 
     .eq('status', statusFilter)
     .order('nome_completo', { ascending: true })
 
-  if (callerCargo === 'Síndico Geral') query = query.neq('cargo', 'SysAdmin')
+  if (callerCargo === 'Subsíndico' || callerCargo === 'Porteiro') {
+    if (callerTorre) query = query.eq('torre', callerTorre)
+  } else if (callerCargo === 'Síndico Geral') {
+    query = query.neq('cargo', 'SysAdmin')
+  }
 
   const { data, error } = await query
   if (error) throw new AppError(error.message, 500)

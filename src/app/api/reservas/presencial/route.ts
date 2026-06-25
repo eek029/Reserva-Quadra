@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { criarReservaPresencial, AppError } from '@/lib/services/reserva';
+import { createRateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
+const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
 const PERMITIDOS = ['Porteiro', 'Subsíndico', 'Síndico Geral', 'SysAdmin'];
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = sensitiveLimiter.check(request);
+    if (rl) return rl;
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ detail: 'Não autorizado.' }, { status: 401 });
 

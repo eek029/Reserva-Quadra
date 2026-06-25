@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { createRateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
+const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
 const ADMIN_ROLES = ['Síndico Geral', 'SysAdmin'];
 
 // DELETE /api/bloqueios/[id]
@@ -11,6 +13,8 @@ export async function DELETE(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const rl = sensitiveLimiter.check(request);
+        if (rl) return rl;
         const { id } = await params;
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

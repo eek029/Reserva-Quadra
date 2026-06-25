@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { listarReservas, criarReserva, AppError } from '@/lib/services/reserva';
+import { createRateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
 
 function getToken(request: NextRequest) {
   const auth = request.headers.get('Authorization');
@@ -18,6 +21,8 @@ function handleError(e: unknown) {
 
 export async function GET(request: NextRequest) {
   try {
+    const rl = normalLimiter.check(request);
+    if (rl) return rl;
     const token = getToken(request);
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
@@ -36,6 +41,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = normalLimiter.check(request);
+    if (rl) return rl;
     const token = getToken(request);
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 

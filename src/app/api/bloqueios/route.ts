@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { listarBloqueios, criarBloqueio, AppError } from '@/lib/services/bloqueio';
+import { createRateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
+const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
+const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
 const ADMIN_ROLES = ['Síndico Geral', 'SysAdmin'];
 
 function getToken(request: NextRequest) {
@@ -14,6 +17,8 @@ function getToken(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const rl = normalLimiter.check(request);
+    if (rl) return rl;
     const token = getToken(request);
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
@@ -32,6 +37,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = sensitiveLimiter.check(request);
+    if (rl) return rl;
     const token = getToken(request);
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 

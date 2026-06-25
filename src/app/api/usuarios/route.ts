@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { listarUsuarios, criarUsuario, AppError } from '@/lib/services/usuario';
+import { createRateLimiter } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
+const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
+
 export async function GET(request: NextRequest) {
   try {
+    const rl = normalLimiter.check(request);
+    if (rl) return rl;
     const auth = request.headers.get('Authorization');
     const token = auth?.startsWith('Bearer ') ? auth.slice(7).trim() : null;
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
@@ -20,7 +25,7 @@ export async function GET(request: NextRequest) {
     if (!caller) return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 401 });
 
     const status = request.nextUrl.searchParams.get('status') ?? undefined;
-    const result = await listarUsuarios(supabase, status, user.id, caller.cargo);
+    const result = await listarUsuarios(supabase, status, user.id, caller.cargo, caller.torre);
     return NextResponse.json(result);
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
@@ -31,6 +36,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = normalLimiter.check(request);
+    if (rl) return rl;
     const supabase = getServiceClient();
     const auth_id = request.nextUrl.searchParams.get('auth_id');
     if (!auth_id) return NextResponse.json({ error: 'auth_id é obrigatório.' }, { status: 400 });

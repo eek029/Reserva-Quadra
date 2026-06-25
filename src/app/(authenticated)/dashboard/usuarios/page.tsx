@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import {
-    Users, Search, ChevronLeft, ChevronRight, Trash2,
+    Users, Search, ChevronLeft, ChevronRight, Trash2, Shield,
     ShieldAlert, Loader2, Filter, CheckCircle, Clock, XCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import ProfileReviewPanel from '@/components/ProfileReviewPanel';
+import AlterarCargoModal from '@/components/AlterarCargoModal';
 
 interface Usuario {
     id: string;
@@ -35,6 +36,7 @@ export default function UsuariosPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [confirmTarget, setConfirmTarget] = useState<Usuario | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [cargoTarget, setCargoTarget] = useState<Usuario | null>(null);
 
     // Filters & Pagination
     const [search, setSearch] = useState('');
@@ -130,6 +132,12 @@ export default function UsuariosPage() {
     };
 
     const isAdmin = currentUser && ['SysAdmin', 'Síndico Geral', 'Subsíndico'].includes(currentUser.cargo);
+    const podeAlterarCargo = currentUser && ['SysAdmin', 'Síndico Geral'].includes(currentUser.cargo);
+    const allowChangeTo = currentUser?.cargo === 'SysAdmin'
+      ? ['Morador', 'Porteiro', 'Subsíndico', 'Síndico Geral']
+      : currentUser?.cargo === 'Síndico Geral'
+        ? ['Morador', 'Porteiro', 'Subsíndico']
+        : [];
     const totalPages = Math.ceil(total / PAGE_SIZE);
 
     const statusBadge = (s: string) => {
@@ -260,6 +268,15 @@ export default function UsuariosPage() {
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         )}
+                                        {podeAlterarCargo && u.cargo !== 'SysAdmin' && u.status === 'aprovado' && (
+                                            <button
+                                                onClick={() => setCargoTarget(u)}
+                                                className="p-1.5 rounded-lg text-violet-400 hover:bg-violet-50 hover:text-violet-600 transition-colors"
+                                                title="Alterar Cargo"
+                                            >
+                                                <Shield className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </td>
                             </tr>
@@ -317,6 +334,16 @@ export default function UsuariosPage() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Alterar Cargo Modal */}
+            {cargoTarget && (
+                <AlterarCargoModal
+                    usuario={cargoTarget}
+                    allowChangeTo={allowChangeTo}
+                    onClose={() => setCargoTarget(null)}
+                    onSuccess={() => { setCargoTarget(null); fetchUsuarios(); }}
+                />
             )}
         </div>
     );

@@ -498,11 +498,12 @@ export default function DashboardPage() {
 
     const isAdmin = ['Síndico Geral', 'Subsíndico', 'SysAdmin'].includes(currentUser.cargo || '');
     const isSindicoOuSysAdmin = ['Síndico Geral', 'SysAdmin'].includes(currentUser.cargo || '');
+    const podeVerPainelAdmin = isAdmin || currentUser.cargo === 'Porteiro';
 
     return (
         <div className="flex-1 max-w-4xl mx-auto w-full p-4 flex flex-col pb-24">
 
-            {isAdmin && (
+            {podeVerPainelAdmin && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                     <AdminApprovalPanel currentUserRole={currentUser.cargo!} />
                     <AdminNotificationPanel />
@@ -511,7 +512,7 @@ export default function DashboardPage() {
                         currentUserRole={currentUser.cargo!}
                         currentUserTorre={currentUser.torre!}
                     />
-                    {isSindicoOuSysAdmin && (
+                    {isAdmin && (
                         <Link
                             href="/dashboard/usuarios"
                             className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4 hover:border-violet-300 hover:shadow-md transition-all group"
