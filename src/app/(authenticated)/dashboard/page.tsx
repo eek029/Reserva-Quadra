@@ -584,7 +584,7 @@ export default function DashboardPage() {
             {currentUser.cargo === 'Porteiro' ? (
                 <PorteiroAgendaHoje />
             ) : activeTab === 'minhas-reservas' ? (
-                <MinhasReservas />
+                <MinhasReservas onReservaChanged={fetchReservas} />
             ) : (
                 <>
                     {/* Header do Calendário */}
@@ -786,7 +786,7 @@ export default function DashboardPage() {
                 <button onClick={() => setActiveTab('minhas-reservas')} className={`flex flex-col items-center p-2 rounded-xl ${activeTab === 'minhas-reservas' ? 'text-violet-600 bg-violet-50' : 'text-gray-400'}`}>
                     <List /><span className="text-[10px] font-bold mt-1 uppercase">Reservas</span>
                 </button>
-                <button onClick={() => setActiveTab('calendario')} className={`flex flex-col items-center p-2 rounded-xl ${activeTab === 'calendario' ? 'text-violet-600 bg-violet-50' : 'text-gray-400'}`}>
+                <button onClick={() => { setActiveTab('calendario'); fetchReservas(); }} className={`flex flex-col items-center p-2 rounded-xl ${activeTab === 'calendario' ? 'text-violet-600 bg-violet-50' : 'text-gray-400'}`}>
                     <CalendarIcon /><span className="text-[10px] font-bold mt-1 uppercase">Quadro</span>
                 </button>
             </nav>

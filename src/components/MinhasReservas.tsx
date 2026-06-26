@@ -13,7 +13,7 @@ interface Reserva {
     motivo_cancelamento?: string | null;
 }
 
-export default function MinhasReservas() {
+export default function MinhasReservas({ onReservaChanged }: { onReservaChanged?: () => void }) {
     const [reservas, setReservas] = useState<Reserva[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [cancellingId, setCancellingId] = useState<string | null>(null);
@@ -47,6 +47,7 @@ export default function MinhasReservas() {
 
         if (!error) {
             setReservas(prev => prev.map(r => r.id === reservaId ? { ...r, status: 'cancelada' } : r));
+            onReservaChanged?.();
         } else {
             alert('Erro ao cancelar. Tente novamente.');
         }

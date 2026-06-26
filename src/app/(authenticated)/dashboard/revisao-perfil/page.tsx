@@ -77,7 +77,7 @@ export default function RevisaoPerfilPage() {
 
         let query = supabase
             .from('solicitacoes_perfil')
-            .select('*, usuarios(nome_completo, cargo, torre, apartamento, foto_url)')
+            .select('*, usuarios!solicitacoes_perfil_usuario_id_fkey(nome_completo, cargo, torre, apartamento, foto_url)')
             .eq('status', 'pendente')
             .order('created_at', { ascending: true });
 
@@ -85,7 +85,10 @@ export default function RevisaoPerfilPage() {
             query = query.eq('usuarios.torre', me.torre);
         }
 
-        const { data } = await query;
+        const { data, error } = await query;
+        if (error) {
+            console.error('Erro ao buscar solicitacoes_perfil:', error);
+        }
         if (data) {
             setRequests(data.filter((d: Solicitacao) => d.usuarios !== null));
         }

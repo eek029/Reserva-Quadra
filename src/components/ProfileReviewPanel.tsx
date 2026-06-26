@@ -39,7 +39,7 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
         setIsLoading(true);
         let query = supabase
             .from('solicitacoes_perfil')
-            .select('*, usuarios(nome_completo, cargo, torre, apartamento)')
+            .select('*, usuarios!solicitacoes_perfil_usuario_id_fkey(nome_completo, cargo, torre, apartamento)')
             .eq('status', 'pendente')
             .order('created_at', { ascending: true });
 
