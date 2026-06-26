@@ -189,7 +189,12 @@ export default function HistoricoPage() {
                         {formatTime(reserva.hora_inicio)} - {formatTime(reserva.hora_fim)}
                       </span>
                     </div>
-                    {reserva.usuarios && (
+                    {reserva.observacao ? (
+                      <span className="text-sm text-gray-600 truncate hidden sm:block">
+                        {reserva.observacao}
+                        <span className="text-xs text-amber-600 font-semibold ml-2">Presencial</span>
+                      </span>
+                    ) : reserva.usuarios && (
                       <span className="text-sm text-gray-600 truncate hidden sm:block">
                         {reserva.usuarios.nome_completo}
                         {reserva.usuarios.torre && ` • T${reserva.usuarios.torre}`}
@@ -214,10 +219,18 @@ export default function HistoricoPage() {
                       <div>
                         <span className="text-gray-400 font-semibold text-xs">Morador</span>
                         <p className="text-gray-700">
-                          {reserva.usuarios?.nome_completo ?? '—'}
-                          {reserva.usuarios?.torre && ` (T${reserva.usuarios.torre}`}
-                          {reserva.usuarios?.apartamento ? `, Apto ${reserva.usuarios.apartamento})` : reserva.usuarios?.torre ? ')' : ''}
+                          {reserva.observacao
+                            ? reserva.observacao
+                            : (reserva.usuarios?.nome_completo ?? '—')}
                         </p>
+                        {reserva.observacao && (
+                          <span className="text-xs text-amber-600 font-semibold mt-0.5 inline-block">Presencial</span>
+                        )}
+                        {!reserva.observacao && reserva.usuarios?.torre && (
+                          <span className="text-xs text-gray-500 mt-0.5 inline-block">
+                            T{reserva.usuarios.torre}{reserva.usuarios.apartamento ? `, Apto ${reserva.usuarios.apartamento}` : ''}
+                          </span>
+                        )}
                       </div>
                       {reserva.telefone_contato && (
                         <div>
