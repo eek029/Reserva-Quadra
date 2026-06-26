@@ -1,0 +1,296 @@
+================================================================================
+  🔐 SEGURANÇA — RESUMO PARA DEEPSEEK IMPLEMENTAR
+================================================================================
+
+Henrique, use este texto para pedir ao DeepSeek fazer as tarefas de segurança.
+
+================================================================================
+  ⚡ SUPER RESUMIDO (Copie e Cole Para DeepSeek)
+================================================================================
+
+"Olá DeepSeek! Preciso que você implemente as tarefas de segurança do projeto 
+/home/henrique/projetos/reserva-quadra/. 
+
+Leia o arquivo SECURITY_TODO_DEEPSEEK.md — tem tudo pronto.
+
+Tarefas:
+- Task 1: Converter console.error → logger em 5 endpoints (15 min)
+- Task 2: Adicionar rate limiting em 2 endpoints (10 min)
+- Task 3: Audit logging com fallback (5 min)
+- Task 4: Avaliar npm vulnerabilities (5 min)
+- Task 5: Testes de validação input (10 min)
+- Task 6: Documentar security headers (5 min)
+- Task 7-10: Documentação (planning)
+
+Total: ~50 minutos de código.
+
+Arquivo de referência: SECURITY_TODO_DEEPSEEK.md (instruções passo a passo)"
+
+================================================================================
+  📋 LISTA DE TAREFAS COM ARQUIVOS
+================================================================================
+
+PRIORIDADE ALTA (Esta Semana - 30 minutos)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Task 1: Logger em Todos Endpoints (15 min)
+  Arquivos a modificar (5 arquivos):
+    └─ src/app/api/reservas/historico/route.ts
+    └─ src/app/api/reservas/presencial/route.ts
+    └─ src/app/api/reservas/validate/route.ts
+    └─ src/app/api/reservas/[id]/chave/route.ts
+    └─ src/app/api/usuarios/[id]/cargo/route.ts
+  
+  Mudança: Substituir console.error() com logger.error()
+  Teste: npm run build
+
+✓ Task 2: Rate Limiting (10 min)
+  Verificar se estes 2 endpoints têm rate limiting:
+    └─ src/app/api/reservas/[id]/route.ts (PATCH)
+    └─ src/app/api/bloqueios/[id]/route.ts (DELETE)
+  
+  Se faltar, adicionar:
+    const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
+  
+  Teste: npm run build
+
+✓ Task 3: Audit Logging (5 min)
+  Arquivo: src/app/api/usuarios/[id]/route.ts (linhas ~40-50)
+  
+  Se auditoria falhar, retornar HTTP 500 em vez de sucesso
+  Código pronto em: SECURITY_FIXES_IMPLEMENTATION.md
+
+PRIORIDADE MÉDIA (Próximas 2-4 Semanas - 20 minutos)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Task 4: npm Vulnerabilities (5 min)
+  Executar: npm audit
+  Procurar: PostCSS < 8.5.10 (XSS em build-time)
+  Decisão: Aceitar risco (é dev-only) ou forçar update
+  
+✓ Task 5: Testes de Validação (10 min)
+  Testar que UUID/CPF/RG/telefone rejeitam inputs inválidos
+  Criar: tests/security-validation.sh (script pronto em SECURITY_TODO_DEEPSEEK.md)
+  
+✓ Task 6: Security Headers Docs (5 min)
+  Criar: docs/SECURITY_HEADERS.md
+  Conteúdo: Listar headers implementados (CSP, X-Frame-Options, etc)
+
+PRIORIDADE BAIXA (Próximas 4-8 Semanas - Planejamento)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Task 7: LGPD Compliance Roadmap (Documentação)
+  Criar: docs/LGPD_ROADMAP.md
+  Escopo: Direito de exclusão, export de dados, breach notification
+
+✓ Task 8: Key Rotation Strategy (Documentação)
+  Criar: docs/KEY_ROTATION_STRATEGY.md
+  Escopo: Planejar rotação de chaves de encriptação
+
+✓ Task 9: Pen Testing Profissional (Outsource)
+  Ação: Contratar empresa (Infodefense, AlphaRed, etc)
+  Não fazer agora
+
+✓ Task 10: Security Test Suite (E2E)
+  Criar: tests/security.test.ts (Playwright)
+  Testa: CSRF, invalid UUID, rate limiting, headers
+
+================================================================================
+  📂 ARQUIVOS DE REFERÊNCIA JÁ CRIADOS
+================================================================================
+
+Você NÃO precisa criar nada — tudo já existe:
+
+✓ SECURITY_TODO_DEEPSEEK.md
+  └─ 563 linhas com instruções passo a passo para cada task
+  └─ Código pronto para copiar/colar
+  └─ Testes inclusos
+
+✓ SECURITY_FIXES_IMPLEMENTATION.md
+  └─ 362 linhas com 5 fixes prontos
+  └─ Exemplos de código
+  └─ Como usar em cada endpoint
+
+✓ SECURITY_AUDIT_2026-06-25.md
+  └─ 695 linhas com auditoria técnica completa
+  └─ Análise de cada vulnerability
+  └─ Comparação com auditoria anterior
+
+✓ SECURITY_EXECUTIVE_SUMMARY.txt
+  └─ 233 linhas resumo executivo
+  └─ Risk score, vulnerabilidades, status
+
+✓ docs/CSRF-PROTECTION.md
+  └─ Guia completo de uso CSRF token
+  └─ Client-side helpers implementados
+
+✓ src/lib/logger.ts
+  └─ Logger estruturado (sanitiza dados sensíveis)
+  └─ Já implementado e testado
+
+✓ src/lib/csrf.ts + src/lib/csrf-client.ts
+  └─ CSRF protection completa
+  └─ Double-submit cookie pattern
+
+================================================================================
+  🎯 PASSO A PASSO PARA DEEPSEEK
+================================================================================
+
+1. Clonar/navegar para: /home/henrique/projetos/reserva-quadra/
+
+2. Ler: SECURITY_TODO_DEEPSEEK.md (563 linhas)
+   - Task 1-6: Código
+   - Task 7-10: Planejamento/Documentação
+
+3. Executar cada task em ordem:
+   a. Ler instruções completas
+   b. Fazer mudanças no código
+   c. Executar teste (npm run build)
+   d. Git commit com mensagem clara
+   e. Passar para próxima task
+
+4. Exemplo para Task 1:
+   ```bash
+   # Abrir arquivo
+   nano src/app/api/reservas/historico/route.ts
+   
+   # 1. Adicionar import no topo
+   import { logger } from '@/lib/logger';
+   
+   # 2. Encontrar console.error (deve haver 2)
+   # 3. Substituir: console.error(...) → logger.error('historico_error', {...})
+   
+   # 4. Testar
+   npm run build
+   
+   # 5. Commit
+   git add -A
+   git commit -m "security: replace console.error with logger in historico"
+   ```
+
+5. Repetir para Task 2, 3, 4, 5, 6
+
+6. Fazer commit final
+   ```bash
+   git log --oneline | head -10
+   ```
+
+================================================================================
+  ✅ VALIDAÇÃO FINAL
+================================================================================
+
+Depois de completar tudo, executar:
+
+1. Build:
+   npm run build
+   # Deve passar sem erros
+
+2. Grep check (não deve encontrar console.error em APIs):
+   grep -r "console.error" src/app/api
+   # Se retornar algo, ainda há console.error para converter
+
+3. Security headers:
+   curl -I http://localhost:3000 | grep -E "X-|Content-Security|Strict"
+   # Deve mostrar os headers de segurança
+
+4. Log final:
+   git log --oneline | head -10
+   # Deve mostrar commits de segurança
+
+================================================================================
+  📊 IMPACTO DAS TAREFAS
+================================================================================
+
+ANTES (Status Atual):
+├─ Risk Score: 5.1/10 (MÉDIO)
+├─ Vulnerabilidades: 10 (0 críticas, 1 alta, 5 médias, 4 baixas)
+└─ Endpoints sem logger: 5
+
+DEPOIS (Após Task 1-6):
+├─ Risk Score: 3.2/10 (BAIXO)
+├─ Vulnerabilidades: 4 (todas baixas)
+└─ Endpoints com logger: 16/16 ✓
+
+Melhoria: 62% redução no risk score
+
+================================================================================
+  💡 DICAS IMPORTANTES
+================================================================================
+
+1. NÃO copiar console.error → logger.error diretamente
+   ✗ ERRADO: logger.error('[api/reservas/historico]', e);
+   ✓ CORRETO: logger.error('historico_error', { endpoint: '/api/reservas/historico' });
+
+2. Sempre rodar npm run build após cada mudança
+   - Verifica TypeScript
+   - Identifica problemas cedo
+
+3. Commits pequenos e claros
+   ✓ "security: add logger to historico endpoint"
+   ✗ "fix security stuff"
+
+4. Se tiver dúvida em alguma task, ler SECURITY_TODO_DEEPSEEK.md seção correspondente
+
+5. Tasks 7-10 são principalmente documentação, não código
+   - Não quebram nada
+   - Podem ser feitas em paralelo com outras work
+
+================================================================================
+  📞 SUPORTE
+================================================================================
+
+Se DeepSeek tiver dúvidas:
+
+1. Procurar em: SECURITY_TODO_DEEPSEEK.md
+   └─ Tem instruções completas para cada task
+
+2. Procurar em: SECURITY_FIXES_IMPLEMENTATION.md
+   └─ Tem código pronto para copiar/colar
+
+3. Procurar em: SECURITY_AUDIT_2026-06-25.md
+   └─ Tem contexto técnico detalhado
+
+4. Se ainda tiver dúvida:
+   └─ Perguntar ao Claude/Henrique
+
+================================================================================
+  🚀 PRÓXIMOS PASSOS APÓS COMPLETAR
+================================================================================
+
+1. Fazer deploy em staging
+2. Testar endpoints manualmente
+3. Executar: npm audit (verificar se PostCSS vulna foi resolvida)
+4. Fazer PR para code review
+5. Merge para main
+6. Deploy em produção
+
+Risk Score final esperado: 3.2/10 (BAIXO)
+
+================================================================================
+  📝 COMANDOS RÁPIDOS
+================================================================================
+
+# Ver o que precisa fazer
+cat SECURITY_TODO_DEEPSEEK.md
+
+# Verificar status atual
+npm audit
+npm run build
+
+# Ver vulnerabilidades de console.error
+grep -r "console.error" src/app/api
+
+# Fazer test rápido
+npm run dev &
+sleep 2
+curl -I http://localhost:3000
+
+# Ver commits de segurança
+git log --grep="security" --oneline
+
+# Desfazer última mudança se quebrou algo
+git reset --hard HEAD~1
+
+================================================================================
+
+Boa sorte! 💪
