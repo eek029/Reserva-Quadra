@@ -3,6 +3,8 @@ import { getServiceClient } from '@/lib/supabase-server';
 import { getUsuarioDecrypted, atualizarUsuario, AppError } from '@/lib/services/usuario';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { validateRequestPayload } from '@/lib/api-validation';
+import { validateUUID } from '@/lib/validators';
+import { validateCsrfToken } from '@/lib/csrf';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +19,12 @@ export async function GET(
     const rl = sensitiveLimiter.check(request);
     if (rl) return rl;
     const { id } = await params;
+    
+    const uuidValidation = validateUUID(id);
+    if (!uuidValidation.valid) {
+      return NextResponse.json({ error: uuidValidation.error }, { status: 400 });
+    }
+    
     const supabase = getServiceClient();
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
@@ -60,7 +68,16 @@ export async function PATCH(
     const validationError = validateRequestPayload(request);
     if (validationError) return validationError;
     
+    if (!validateCsrfToken(request)) {
+      return NextResponse.json({ error: 'CSRF token inválido.' }, { status: 403 });
+    }
+    
     const { id } = await params;
+    const uuidValidation = validateUUID(id);
+    if (!uuidValidation.valid) {
+      return NextResponse.json({ error: uuidValidation.error }, { status: 400 });
+    }
+    
     const supabase = getServiceClient();
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });

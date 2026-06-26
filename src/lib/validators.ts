@@ -7,6 +7,9 @@ export function zodMsg(result: { success: boolean; error?: ZodError }): string |
 
 export const timeRegex = /^\d{2}:\d{2}(:\d{2})?$/
 export const dateRegex = /^\d{4}-\d{2}-\d{2}$/
+export const cpfRegex = /^\d{3}\.\d{3}\.\d{3}-\d{2}$/
+export const rgRegex = /^\d{1,2}\.\d{3}\.\d{3}-[\dX]$/
+export const telefoneRegex = /^\(\d{2}\) (?:\d{4}-\d{4}|\d{5}-\d{4})$/
 
 export const criarReservaSchema = z.object({
   data_reserva: z.string().regex(dateRegex, 'Formato deve ser YYYY-MM-DD'),
@@ -18,7 +21,7 @@ export const criarReservaSchema = z.object({
 
 export const reservaPresencialSchema = z.object({
   observacao: z.string().min(1, 'Observação é obrigatória'),
-  telefone_contato: z.string().min(1, 'Telefone de contato é obrigatório'),
+  telefone_contato: z.string().regex(telefoneRegex, 'Telefone deve estar no formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX'),
   hora_inicio: z.string().regex(timeRegex, 'Formato deve ser HH:MM'),
   hora_fim: z.string().regex(timeRegex, 'Formato deve ser HH:MM'),
 })
@@ -44,14 +47,14 @@ export const criarBloqueioSchema = z.object({
 export const criarUsuarioSchema = z.object({
   nome_completo: z.string().min(1, 'Nome é obrigatório'),
   data_nascimento: z.string().regex(dateRegex, 'Formato deve ser YYYY-MM-DD'),
-  telefone: z.string().min(1, 'Telefone é obrigatório'),
+  telefone: z.string().regex(telefoneRegex, 'Telefone deve estar no formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX'),
   apartamento: z.string().nullable().optional(),
   torre: z.string().nullable().optional(),
   bloco: z.string().nullable().optional(),
   foto_url: z.string().nullable().optional(),
   cargo: z.string().optional(),
-  rg: z.string().min(1, 'RG é obrigatório'),
-  cpf: z.string().min(1, 'CPF é obrigatório'),
+  rg: z.string().regex(rgRegex, 'RG deve estar no formato XX.XXX.XXX-X'),
+  cpf: z.string().regex(cpfRegex, 'CPF deve estar no formato XXX.XXX.XXX-XX'),
 })
 
 export const atualizarUsuarioSchema = z.object({
@@ -77,3 +80,14 @@ export const historicoQuerySchema = z.object({
   page: z.coerce.number().int().min(1).optional().default(1),
   pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
 })
+
+// UUID Validation Helper
+export const uuidSchema = z.string().uuid('ID deve ser um UUID válido')
+
+export function validateUUID(id: string): { valid: boolean; error?: string } {
+  const result = uuidSchema.safeParse(id)
+  if (!result.success) {
+    return { valid: false, error: result.error.issues[0]?.message }
+  }
+  return { valid: true }
+}

@@ -3,6 +3,7 @@ import { getServiceClient } from '@/lib/supabase-server';
 import { listarBloqueios, criarBloqueio, AppError } from '@/lib/services/bloqueio';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { validateRequestPayload } from '@/lib/api-validation';
+import { validateCsrfToken } from '@/lib/csrf';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,6 +44,10 @@ export async function POST(request: NextRequest) {
     
     const validationError = validateRequestPayload(request);
     if (validationError) return validationError;
+    
+    if (!validateCsrfToken(request)) {
+      return NextResponse.json({ error: 'CSRF token inválido.' }, { status: 403 });
+    }
     
     const token = getToken(request);
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });

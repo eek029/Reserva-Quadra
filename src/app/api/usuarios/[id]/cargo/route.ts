@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { validateRequestPayload } from '@/lib/api-validation';
+import { validateUUID } from '@/lib/validators';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,11 @@ export async function PATCH(
     if (validationError) return validationError;
     
     const { id } = await params;
+    const uuidValidation = validateUUID(id);
+    if (!uuidValidation.valid) {
+      return NextResponse.json({ error: uuidValidation.error }, { status: 400 });
+    }
+    
     const supabase = getServiceClient();
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });

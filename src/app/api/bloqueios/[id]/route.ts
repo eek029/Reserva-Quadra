@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { validateUUID } from '@/lib/validators';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +17,12 @@ export async function DELETE(
         const rl = sensitiveLimiter.check(request);
         if (rl) return rl;
         const { id } = await params;
+        
+        const uuidValidation = validateUUID(id);
+        if (!uuidValidation.valid) {
+          return NextResponse.json({ error: uuidValidation.error }, { status: 400 });
+        }
+        
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
         if (!url || !serviceRoleKey) {
