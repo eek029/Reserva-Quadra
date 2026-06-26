@@ -1,8 +1,26 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const CSRF_COOKIE = 'csrf-token'
+
+function ensureCsrfCookie(request: NextRequest, response: NextResponse) {
+  if (!request.cookies.get(CSRF_COOKIE)?.value) {
+    const arr = new Uint8Array(32)
+    crypto.getRandomValues(arr)
+    const token = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('')
+    response.cookies.set(CSRF_COOKIE, token, {
+      httpOnly: false,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24,
+      path: '/',
+    })
+  }
+}
+
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
+  ensureCsrfCookie(request, supabaseResponse)
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
