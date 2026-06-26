@@ -22,7 +22,7 @@ interface ReservaHistorico {
   devolvida_em: string | null
   ocorrencia_texto: string | null
   turno_registro: string | null
-  created_at: string
+  timestamp_aceite: string | null
   usuarios: {
     nome_completo: string
     foto_url: string | null
@@ -248,7 +248,7 @@ export default function HistoricoPage() {
                           <div className="w-2 h-2 rounded-full bg-violet-400 shrink-0" />
                           <span className="text-gray-500">Reserva criada</span>
                           <span className="text-gray-400 ml-auto">
-                            {new Date(reserva.created_at).toLocaleString('pt-BR')}
+                            {reserva.timestamp_aceite ? new Date(reserva.timestamp_aceite).toLocaleString('pt-BR') : '—'}
                           </span>
                         </div>
                         {reserva.retirada_em && (

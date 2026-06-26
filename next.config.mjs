@@ -29,7 +29,7 @@ const nextConfig = {
                     },
                     {
                         key: 'Content-Security-Policy',
-                        value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self' data:; connect-src 'self' https://bgkedrkyeofuwctiteuf.supabase.co; frame-ancestors 'none';",
+                        value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self' data:; connect-src 'self' https://bgkedrkyeofuwctiteuf.supabase.co wss://bgkedrkyeofuwctiteuf.supabase.co; frame-ancestors 'none';",
                     },
                     {
                         key: 'Referrer-Policy',

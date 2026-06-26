@@ -1,0 +1,51 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - img "Foto do Perfil" [ref=e28]
+          - generic [ref=e29]:
+            - generic [ref=e30]: Síndico Geral
+            - generic [ref=e31]: Síndico Geral
+        - link "Voltar" [ref=e33] [cursor=pointer]:
+          - /url: /dashboard
+          - img [ref=e34]
+          - text: Voltar
+    - generic [ref=e36]:
+      - generic [ref=e38]:
+        - link "← Dashboard" [ref=e39] [cursor=pointer]:
+          - /url: /dashboard
+        - heading "Histórico de Reservas" [level=1] [ref=e40]:
+          - img [ref=e41]
+          - text: Histórico de Reservas
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - generic [ref=e48]: De
+          - textbox [ref=e49]: 2025-12-26
+        - generic [ref=e50]:
+          - generic [ref=e51]: Até
+          - textbox [ref=e52]: 2026-06-26
+        - generic [ref=e53]:
+          - generic [ref=e54]: Status
+          - combobox [ref=e55]:
+            - option "Todas" [selected]
+            - option "Ativa"
+            - option "Cancelada"
+        - generic [ref=e56]:
+          - generic [ref=e57]: Buscar morador
+          - generic [ref=e58]:
+            - img [ref=e59]
+            - textbox "Nome..." [ref=e62]
+      - img [ref=e64]
+  - alert [ref=e14]
+  - generic [ref=e16]:
+    - generic [ref=e17]:
+      - heading "Sua Privacidade é Importante (LGPD)" [level=3] [ref=e18]
+      - paragraph [ref=e19]:
+        - text: Utilizamos cookies essenciais para o funcionamento seguro do nosso sistema de reservas e, com o seu consentimento, cookies de análise para melhorar a sua experiência. Você pode revisar nossa
+        - link "Política de Privacidade" [ref=e20] [cursor=pointer]:
+          - /url: /privacy
+        - text: e gerenciar seus dados a qualquer momento.
+    - generic [ref=e21]:
+      - button "Apenas Essenciais" [ref=e22] [cursor=pointer]
+      - button "Aceitar Todos" [ref=e23] [cursor=pointer]

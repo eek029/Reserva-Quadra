@@ -1,0 +1,194 @@
+- generic [active] [ref=e1]:
+  - alert [ref=e52]
+  - generic [ref=e62]:
+    - banner [ref=e74]:
+      - generic [ref=e75]:
+        - generic [ref=e76]:
+          - img "Foto do Perfil" [ref=e78]
+          - generic [ref=e79]:
+            - generic [ref=e80]: Síndico Geral
+            - generic [ref=e81]: Síndico Geral
+        - generic [ref=e82]:
+          - generic "Notificações" [ref=e83]:
+            - button "Notificações" [ref=e84] [cursor=pointer]:
+              - img [ref=e85]
+          - link "Regras de Utilização da Quadra" [ref=e88] [cursor=pointer]:
+            - /url: /regras
+            - img [ref=e89]
+          - link "Perfil" [ref=e91] [cursor=pointer]:
+            - /url: /profile
+            - img [ref=e92]
+          - button "Sair da Conta" [ref=e95] [cursor=pointer]:
+            - img [ref=e96]
+    - generic [ref=e99]:
+      - generic [ref=e100]:
+        - generic [ref=e101]:
+          - generic [ref=e102]:
+            - heading "Cadastros Pendentes (2)" [level=2] [ref=e281]:
+              - img [ref=e104]
+              - text: Cadastros Pendentes (2)
+            - button "Atualizar lista" [ref=e107] [cursor=pointer]:
+              - img [ref=e108]
+          - generic [ref=e113]:
+            - button "Unidos da Luz Morador Torre 3, Apto 007 Ver ficha →" [ref=e282] [cursor=pointer]:
+              - generic [ref=e285]:
+                - generic [ref=e286]:
+                  - paragraph [ref=e287]: Unidos da Luz
+                  - generic [ref=e288]: Morador
+                - paragraph [ref=e289]: Torre 3, Apto 007
+              - generic [ref=e290]: Ver ficha →
+            - button "Unidos do Complexo Morador Torre 5, Apto 009 Ver ficha →" [ref=e291] [cursor=pointer]:
+              - generic [ref=e294]:
+                - generic [ref=e295]:
+                  - paragraph [ref=e296]: Unidos do Complexo
+                  - generic [ref=e297]: Morador
+                - paragraph [ref=e298]: Torre 5, Apto 009
+              - generic [ref=e299]: Ver ficha →
+        - generic [ref=e117]:
+          - heading "Mural e Comunicação" [level=2] [ref=e119]:
+            - img [ref=e120]
+            - text: Mural e Comunicação
+          - generic [ref=e123]:
+            - generic [ref=e124]:
+              - generic [ref=e125]: Destinatário
+              - generic [ref=e126]:
+                - generic [ref=e127] [cursor=pointer]:
+                  - radio "Todos os Moradores" [checked] [ref=e128]
+                  - generic [ref=e129]:
+                    - img [ref=e130]
+                    - text: Todos os Moradores
+                - generic [ref=e135] [cursor=pointer]:
+                  - radio "Morador Específico" [ref=e136]
+                  - generic [ref=e137]: Morador Específico
+            - generic [ref=e138]:
+              - generic [ref=e139]: Conteúdo da Mensagem
+              - 'textbox "Escreva a notificação (ex: Manutenção na bomba de água em 2 dias...)" [ref=e140]'
+            - button "Disparar" [ref=e142] [cursor=pointer]:
+              - text: Disparar
+              - img [ref=e143]
+        - link "Gestão de Usuários Visualizar, suspender ou excluir moradores" [ref=e159] [cursor=pointer]:
+          - /url: /dashboard/usuarios
+          - img [ref=e161]
+          - generic [ref=e166]:
+            - heading "Gestão de Usuários" [level=2] [ref=e167]
+            - paragraph [ref=e168]: Visualizar, suspender ou excluir moradores
+          - img [ref=e169]
+        - link "Histórico de Reservas Visualizar reservas passadas e cancelamentos" [ref=e171] [cursor=pointer]:
+          - /url: /dashboard/historico
+          - img [ref=e173]
+          - generic [ref=e177]:
+            - heading "Histórico de Reservas" [level=2] [ref=e178]
+            - paragraph [ref=e179]: Visualizar reservas passadas e cancelamentos
+          - img [ref=e180]
+        - link "Mensagens Central de notificações e comunicados" [ref=e182] [cursor=pointer]:
+          - /url: /dashboard/mensagens
+          - img [ref=e184]
+          - generic [ref=e187]:
+            - heading "Mensagens" [level=2] [ref=e188]
+            - paragraph [ref=e189]: Central de notificações e comunicados
+          - img [ref=e190]
+      - generic [ref=e192]:
+        - button [ref=e193] [cursor=pointer]:
+          - img [ref=e194]
+        - generic [ref=e196]:
+          - heading "sexta-feira, 26 de jun." [level=2] [ref=e197]
+          - paragraph [ref=e198]: Síndico Geral - 2
+        - button [ref=e199] [cursor=pointer]:
+          - img [ref=e200]
+      - button "Bloquear Horários" [ref=e203] [cursor=pointer]:
+        - img [ref=e204]
+        - text: Bloquear Horários
+      - generic [ref=e207]:
+        - generic [ref=e208]:
+          - generic [ref=e209]:
+            - generic [ref=e210]: 09:00 - 10:00
+            - generic [ref=e300]:
+              - img "Avatar" [ref=e301]
+              - generic [ref=e302]:
+                - generic [ref=e303]: Subsíndico de Torre
+                - generic [ref=e304]: Torre 3 - Apto 03
+          - generic [ref=e211]:
+            - generic [ref=e212]: ocupado
+            - button "Cancelar reserva" [ref=e305] [cursor=pointer]:
+              - img [ref=e306]
+        - generic [ref=e213]:
+          - generic [ref=e214]:
+            - generic [ref=e215]: 10:00 - 11:00
+            - generic [ref=e310]:
+              - img "Avatar" [ref=e311]
+              - generic [ref=e312]:
+                - generic [ref=e313]: Subsíndico de Torre
+                - generic [ref=e314]: Torre 3 - Apto 03
+          - generic [ref=e216]:
+            - generic [ref=e217]: ocupado
+            - button "Cancelar reserva" [ref=e315] [cursor=pointer]:
+              - img [ref=e316]
+        - generic [ref=e218]:
+          - generic [ref=e219]:
+            - generic [ref=e220]: 11:00 - 12:00
+            - generic [ref=e320]:
+              - img "Avatar" [ref=e321]
+              - generic [ref=e322]:
+                - generic [ref=e323]: Subsíndico de Torre
+                - generic [ref=e324]: Torre 3 - Apto 03
+          - generic [ref=e221]:
+            - generic [ref=e222]: ocupado
+            - button "Cancelar reserva" [ref=e325] [cursor=pointer]:
+              - img [ref=e326]
+        - generic [ref=e223]:
+          - generic [ref=e224]:
+            - generic [ref=e225]: 12:00 - 13:00
+            - generic [ref=e330]:
+              - img "Avatar" [ref=e331]
+              - generic [ref=e332]:
+                - generic [ref=e333]: Síndico Geral
+                - generic [ref=e334]: Torre 2 - Apto 02
+          - generic [ref=e226]:
+            - generic [ref=e227]: ocupado
+            - button "Cancelar reserva" [ref=e335] [cursor=pointer]:
+              - img [ref=e336]
+        - generic [ref=e228] [cursor=pointer]:
+          - generic [ref=e230]: 13:00 - 14:00
+          - generic [ref=e232]: livre
+        - generic [ref=e233] [cursor=pointer]:
+          - generic [ref=e235]: 14:00 - 15:00
+          - generic [ref=e237]: livre
+        - generic [ref=e238] [cursor=pointer]:
+          - generic [ref=e240]: 15:00 - 16:00
+          - generic [ref=e242]: livre
+        - generic [ref=e243] [cursor=pointer]:
+          - generic [ref=e245]: 16:00 - 17:00
+          - generic [ref=e247]: livre
+        - generic [ref=e248] [cursor=pointer]:
+          - generic [ref=e250]: 17:00 - 18:00
+          - generic [ref=e252]: livre
+        - generic [ref=e253] [cursor=pointer]:
+          - generic [ref=e255]: 18:00 - 19:00
+          - generic [ref=e257]: livre
+        - generic [ref=e258] [cursor=pointer]:
+          - generic [ref=e260]: 19:00 - 20:00
+          - generic [ref=e262]: livre
+        - generic [ref=e263] [cursor=pointer]:
+          - generic [ref=e265]: 20:00 - 21:00
+          - generic [ref=e267]: livre
+        - generic [ref=e268] [cursor=pointer]:
+          - generic [ref=e270]: 21:00 - 22:00
+          - generic [ref=e272]: livre
+      - navigation [ref=e273]:
+        - button "Reservas" [ref=e274] [cursor=pointer]:
+          - img [ref=e275]
+          - generic [ref=e276]: Reservas
+        - button "Quadro" [ref=e277] [cursor=pointer]:
+          - img [ref=e278]
+          - generic [ref=e280]: Quadro
+  - generic [ref=e54]:
+    - generic [ref=e55]:
+      - heading "Sua Privacidade é Importante (LGPD)" [level=3] [ref=e56]
+      - paragraph [ref=e57]:
+        - text: Utilizamos cookies essenciais para o funcionamento seguro do nosso sistema de reservas e, com o seu consentimento, cookies de análise para melhorar a sua experiência. Você pode revisar nossa
+        - link "Política de Privacidade" [ref=e58] [cursor=pointer]:
+          - /url: /privacy
+        - text: e gerenciar seus dados a qualquer momento.
+    - generic [ref=e59]:
+      - button "Apenas Essenciais" [ref=e60] [cursor=pointer]
+      - button "Aceitar Todos" [ref=e61] [cursor=pointer]
