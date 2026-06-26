@@ -66,24 +66,26 @@ export default function Header() {
         fetchUserData();
     }, []);
 
-    const markAsRead = async (notifId: string) => {
+    const isAdmin = user && ['SysAdmin', 'Síndico Geral', 'Subsíndico'].includes(user.cargo);
+
+    const handleNotificationClick = async (notifId: string) => {
+        // Always mark as read
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
-
-            const { error } = await supabase
-                .from('notificacoes')
-                .update({ lida: true })
-                .eq('id', notifId);
-
-            if (!error) {
+            if (session) {
+                await supabase.from('notificacoes').update({ lida: true }).eq('id', notifId);
                 setNotifications(notifications.map(n => n.id === notifId ? { ...n, lida: true } : n));
-            } else {
-                console.error("Erro ao marcar como lida:", error);
             }
-        } catch (err) {
-            console.error("Erro fatal marcando notificação", err);
+        } catch {
+            // silent
         }
+
+        // Navigate to review page if admin
+        if (isAdmin) {
+            router.push('/dashboard/revisao-perfil');
+        }
+
+        setShowNotifications(false);
     }
 
     const handleLogout = async () => {
@@ -184,7 +186,7 @@ export default function Header() {
                                                     notifications.map(notif => (
                                                         <div
                                                             key={notif.id}
-                                                            onClick={() => markAsRead(notif.id)}
+                                                            onClick={() => handleNotificationClick(notif.id)}
                                                             className={`p-4 text-sm transition-colors flex items-start gap-3 cursor-pointer ${notif.lida ? 'bg-white text-gray-500 hover:bg-gray-50' : 'bg-violet-50/50 text-gray-800 hover:bg-violet-50'}`}
                                                         >
                                                             {!notif.lida ? (

@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ClipboardList, Check, X, Loader2, User, ChevronDown, ChevronUp } from 'lucide-react';
+import { getCsrfToken } from '@/lib/csrf-client';
+import { ClipboardList, Check, X, Loader2, User, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 
 interface Solicitacao {
     id: string;
@@ -41,14 +43,12 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
             .eq('status', 'pendente')
             .order('created_at', { ascending: true });
 
-        // Subsíndico: only see requests from users in their own torre
         if (currentUserRole === 'Subsíndico') {
             query = query.eq('usuarios.torre', currentUserTorre);
         }
 
         const { data } = await query;
         if (data) {
-            // Filter out nulls that can happen with joined filters
             const filtered = data.filter((d: Solicitacao) => d.usuarios !== null);
             setRequests(filtered);
         }
@@ -60,28 +60,52 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
     const handleApprove = async (req: Solicitacao) => {
         setProcessingId(req.id);
 
-        // Update the user's data with the requested changes
-        const updates: Record<string, string> = {};
-        if (req.novo_nome) updates.nome_completo = req.novo_nome;
-        if (req.novo_cpf) updates.cpf = req.novo_cpf;
-        if (req.nova_foto_url) updates.foto_url = req.nova_foto_url;
+        try {
+            const csrfToken = getCsrfToken();
+            if (!csrfToken) {
+                setProcessingId(null);
+                return;
+            }
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token || '';
 
-        if (Object.keys(updates).length > 0) {
-            await supabase.from('usuarios').update(updates).eq('id', req.usuario_id);
+            const updates: Record<string, string> = {};
+            if (req.novo_nome) updates.nome_completo = req.novo_nome;
+            if (req.novo_cpf) updates.cpf = req.novo_cpf;
+            if (req.nova_foto_url) updates.foto_url = req.nova_foto_url;
+
+            if (Object.keys(updates).length > 0) {
+                const res = await fetch(`/api/usuarios/${req.usuario_id}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json',
+                        'x-csrf-token': csrfToken,
+                    },
+                    body: JSON.stringify(updates),
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    console.error('Approve failed:', err);
+                    setProcessingId(null);
+                    return;
+                }
+            }
+
+            await supabase.from('solicitacoes_perfil')
+                .update({ status: 'aprovado', revisado_por: currentUserId })
+                .eq('id', req.id);
+
+            await supabase.from('notificacoes').insert([{
+                mensagem: 'Sua solicitação de alteração de perfil foi aprovada pela administração.',
+                destinatario_id: req.usuario_id
+            }]);
+
+            setRequests(prev => prev.filter(r => r.id !== req.id));
+        } catch (err) {
+            console.error('Approve error:', err);
         }
-
-        // Mark request as approved
-        await supabase.from('solicitacoes_perfil')
-            .update({ status: 'aprovado', revisado_por: currentUserId })
-            .eq('id', req.id);
-
-        // Notify the user
-        await supabase.from('notificacoes').insert([{
-            mensagem: 'Sua solicitação de alteração de perfil foi aprovada pela administração.',
-            destinatario_id: req.usuario_id
-        }]);
-
-        setRequests(prev => prev.filter(r => r.id !== req.id));
         setProcessingId(null);
     };
 
@@ -106,9 +130,9 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
     return (
         <>
             <div className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden mb-6">
-                <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="w-full bg-amber-50 px-4 py-3 border-b border-amber-100 flex items-center justify-between"
+                <Link
+                    href="/dashboard/revisao-perfil"
+                    className="w-full bg-amber-50 px-4 py-3 border-b border-amber-100 flex items-center justify-between hover:bg-amber-100 transition-colors"
                 >
                     <div className="flex items-center gap-2">
                         <ClipboardList className="w-4 h-4 text-amber-700" />
@@ -117,29 +141,30 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
                             <span className="bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{requests.length}</span>
                         )}
                     </div>
-                    {isExpanded ? <ChevronUp className="w-4 h-4 text-amber-600" /> : <ChevronDown className="w-4 h-4 text-amber-600" />}
-                </button>
+                    <div className="flex items-center gap-2 text-xs text-amber-700 font-medium">
+                        <span>Ir para revisão</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                    </div>
+                </Link>
 
-                {isExpanded && (
+                {requests.length > 0 && (
                     <div className="divide-y divide-gray-50">
                         {isLoading ? (
                             <div className="p-6 flex justify-center text-gray-400">
                                 <Loader2 className="w-5 h-5 animate-spin" />
                             </div>
-                        ) : requests.map(req => (
+                        ) : requests.slice(0, 3).map(req => (
                             <div key={req.id} className="p-4 flex flex-col sm:flex-row sm:items-start gap-4">
-                                {/* User info */}
                                 <div className="flex items-center gap-3 flex-shrink-0">
                                     <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center">
                                         <User className="w-5 h-5 text-violet-600" />
                                     </div>
                                     <div>
                                         <p className="text-sm font-semibold text-gray-800">{req.usuarios.nome_completo}</p>
-                                        <p className="text-xs text-gray-500">{req.usuarios.cargo} · T{req.usuarios.torre} · Apto {req.usuarios.apartamento}</p>
+                                        <p className="text-xs text-gray-500">{req.usuarios.cargo} &middot; T{req.usuarios.torre} &middot; Apto {req.usuarios.apartamento}</p>
                                     </div>
                                 </div>
 
-                                {/* Changes requested */}
                                 <div className="flex-1 space-y-1">
                                     <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Alterações Solicitadas</p>
                                     {req.novo_nome && (
@@ -149,7 +174,7 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
                                     )}
                                     {req.novo_cpf && (
                                         <div className="text-xs bg-gray-50 rounded-lg px-3 py-1.5 text-gray-700">
-                                            <span className="font-semibold">CPF:</span> {req.novo_cpf}
+                                            <span className="font-semibold">CPF:</span> {req.novo_cpf.slice(0, 3)}*****{req.novo_cpf.slice(-2)}
                                         </div>
                                     )}
                                     {req.nova_foto_url && (
@@ -160,7 +185,7 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
                                                 onClick={() => setPreviewFoto(req.nova_foto_url)}
                                                 className="text-violet-600 underline"
                                             >
-                                                Visualizar nova foto
+                                                Visualizar
                                             </button>
                                         </div>
                                     )}
@@ -168,26 +193,16 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
                                         Enviado em {new Date(req.created_at).toLocaleDateString('pt-BR')}
                                     </p>
                                 </div>
-
-                                {/* Action buttons */}
-                                <div className="flex gap-2 flex-shrink-0">
-                                    <button
-                                        onClick={() => handleReject(req)}
-                                        disabled={processingId === req.id}
-                                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
-                                    >
-                                        {processingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />} Rejeitar
-                                    </button>
-                                    <button
-                                        onClick={() => handleApprove(req)}
-                                        disabled={processingId === req.id}
-                                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-50"
-                                    >
-                                        {processingId === req.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />} Aprovar
-                                    </button>
-                                </div>
                             </div>
                         ))}
+                        {requests.length > 3 && (
+                            <Link
+                                href="/dashboard/revisao-perfil"
+                                className="block text-center py-2 text-xs font-semibold text-violet-600 hover:bg-violet-50 transition-colors"
+                            >
+                                Ver todas as {requests.length} solicitações
+                            </Link>
+                        )}
                     </div>
                 )}
             </div>

@@ -99,10 +99,32 @@ export async function atualizarUsuario(supabase: SupabaseClient, id: string, cal
   Object.keys(update).forEach(k => { if (update[k] === undefined) delete update[k] })
   if (Object.keys(update).length === 0) throw new ValidationError('Nenhum campo válido para atualizar.')
 
-  const { error } = await supabase.from('usuarios').update(update).eq('id', id)
-  if (error) throw new AppError(error.message, 500)
+  // Extract encrypted fields (CPF, RG) and handle them via RPC
+  const cpf = update.cpf ?? undefined
+  const rg = update.rg ?? undefined
+  delete update.cpf
+  delete update.rg
+
+  // Update plain fields directly
+  const plainKeys = Object.keys(update)
+  if (plainKeys.length > 0) {
+    const { error } = await supabase.from('usuarios').update(update).eq('id', id)
+    if (error) throw new AppError(error.message, 500)
+  }
+
+  // Update encrypted fields via RPC
+  if (cpf || rg) {
+    const { error } = await supabase.rpc('update_usuario_encrypted_fields', {
+      p_user_id: id,
+      p_nome_completo: null,
+      p_cpf: cpf ?? null,
+      p_rg: rg ?? null,
+      p_foto_url: null,
+    })
+    if (error) throw new AppError(error.message, 500)
+  }
 
   supabase.from('audit_logs').insert({
-    perfil_id: callerId, acao: 'atualizou_usuario', detalhes: { alvo_usuario_id: id, campos: update }
+    perfil_id: callerId, acao: 'atualizou_usuario', detalhes: { alvo_usuario_id: id, campos: { ...update, cpf: cpf ? '(encrypted)' : undefined, rg: rg ? '(encrypted)' : undefined } }
   }).then(() => {})
 }
