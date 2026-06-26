@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Calendar as CalendarIcon, List, ChevronLeft, ChevronRight,
-    Users, XCircle, CloudRain, Wrench, Loader2, X, Lock, Unlock, History
+    Users, XCircle, CloudRain, Wrench, Loader2, X, Lock, Unlock, History, Bell
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -561,6 +561,23 @@ export default function DashboardPage() {
                         </Link>
                         </>
                     )}
+                    <Link
+                        href="/dashboard/mensagens"
+                        className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4 hover:border-violet-300 hover:shadow-md transition-all group"
+                    >
+                        <div className="p-3 bg-violet-50 rounded-xl group-hover:bg-violet-100 transition-colors">
+                            <Bell className="w-6 h-6 text-violet-600" />
+                        </div>
+                        <div className="flex-1">
+                            <h2 className="text-sm font-semibold text-gray-700 group-hover:text-violet-700 transition-colors">
+                                Mensagens
+                            </h2>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                                Central de notificações e comunicados
+                            </p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-violet-400 transition-colors" />
+                    </Link>
                 </div>
             )}
 

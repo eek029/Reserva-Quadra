@@ -68,8 +68,7 @@ export default function Header() {
 
     const isAdmin = user && ['SysAdmin', 'Síndico Geral', 'Subsíndico'].includes(user.cargo);
 
-    const handleNotificationClick = async (notifId: string) => {
-        // Always mark as read
+    const handleNotificationClick = async (notifId: string, mensagem: string) => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (session) {
@@ -80,9 +79,11 @@ export default function Header() {
             // silent
         }
 
-        // Navigate to review page if admin
         if (isAdmin) {
-            router.push('/dashboard/revisao-perfil');
+            const isProfileChange = /perfil/i.test(mensagem) && /solicitou|solicitação|alterac?[aã]o/i.test(mensagem);
+            router.push(isProfileChange ? '/dashboard/revisao-perfil' : '/dashboard/mensagens');
+        } else {
+            router.push('/dashboard/mensagens');
         }
 
         setShowNotifications(false);
@@ -186,7 +187,7 @@ export default function Header() {
                                                     notifications.map(notif => (
                                                         <div
                                                             key={notif.id}
-                                                            onClick={() => handleNotificationClick(notif.id)}
+                                                            onClick={() => handleNotificationClick(notif.id, notif.mensagem)}
                                                             className={`p-4 text-sm transition-colors flex items-start gap-3 cursor-pointer ${notif.lida ? 'bg-white text-gray-500 hover:bg-gray-50' : 'bg-violet-50/50 text-gray-800 hover:bg-violet-50'}`}
                                                         >
                                                             {!notif.lida ? (
