@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { getUsuarioDecrypted, atualizarUsuario, AppError } from '@/lib/services/usuario';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { validateRequestPayload } from '@/lib/api-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,10 +32,14 @@ export async function GET(
 
     const data = await getUsuarioDecrypted(supabase, id);
 
-    supabase.from('audit_logs').insert({
+    const { error: auditError } = await supabase.from('audit_logs').insert({
       perfil_id: caller.id, acao: 'visualizou_dados_sensiveis',
       detalhes: { alvo_usuario_id: id, campos: ['rg', 'cpf'] },
-    }).then(() => {});
+    });
+
+    if (auditError) {
+      console.error('[audit] Falha ao registrar acesso a dados sensíveis:', auditError);
+    }
 
     return NextResponse.json(data);
   } catch (e) {
@@ -51,6 +56,10 @@ export async function PATCH(
   try {
     const rl = sensitiveLimiter.check(request);
     if (rl) return rl;
+    
+    const validationError = validateRequestPayload(request);
+    if (validationError) return validationError;
+    
     const { id } = await params;
     const supabase = getServiceClient();
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();

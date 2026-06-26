@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { cancelarReserva, AppError } from '@/lib/services/reserva';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { validateRequestPayload } from '@/lib/api-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,10 @@ export async function PATCH(
   try {
     const rl = sensitiveLimiter.check(request);
     if (rl) return rl;
+    
+    const validationError = validateRequestPayload(request);
+    if (validationError) return validationError;
+    
     const { id } = await params;
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });

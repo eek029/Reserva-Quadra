@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { listarBloqueios, criarBloqueio, AppError } from '@/lib/services/bloqueio';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { validateRequestPayload } from '@/lib/api-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,6 +40,10 @@ export async function POST(request: NextRequest) {
   try {
     const rl = sensitiveLimiter.check(request);
     if (rl) return rl;
+    
+    const validationError = validateRequestPayload(request);
+    if (validationError) return validationError;
+    
     const token = getToken(request);
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { registrarChave, AppError } from '@/lib/services/reserva';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { validateRequestPayload } from '@/lib/api-validation';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,19 +16,23 @@ export async function PATCH(
   try {
     const rl = sensitiveLimiter.check(request);
     if (rl) return rl;
+    
+    const validationError = validateRequestPayload(request);
+    if (validationError) return validationError;
+    
     const { id } = await params;
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
-    if (!token) return NextResponse.json({ detail: 'Não autorizado.' }, { status: 401 });
+    if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
     const supabase = getServiceClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) return NextResponse.json({ detail: 'Token inválido.' }, { status: 401 });
+    if (authError || !user) return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
 
     const { data: caller } = await supabase
       .from('usuarios').select('cargo').eq('id', user.id).maybeSingle();
 
     if (!caller || !PERMITIDOS.includes(caller.cargo))
-      return NextResponse.json({ detail: 'Sem permissão.' }, { status: 403 });
+      return NextResponse.json({ error: 'Sem permissão.' }, { status: 403 });
 
     const body = await request.json();
     const result = await registrarChave(supabase, id, body, user.id);

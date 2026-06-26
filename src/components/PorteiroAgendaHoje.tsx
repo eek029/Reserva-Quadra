@@ -157,7 +157,6 @@ export default function PorteiroAgendaHoje() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'requester-id': sessionUserId,
                 },
                 body: JSON.stringify({
                     observacao: observacaoPresencial.trim(),
@@ -191,7 +190,7 @@ export default function PorteiroAgendaHoje() {
             const payload = { acao, ocorrencia_texto: ocorrencia || null };
             const response = await fetch(`/api/reservas/${res.id}/chave`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', 'requester-id': session.user.id },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
             });
 

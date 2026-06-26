@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { listarUsuarios, criarUsuario, AppError } from '@/lib/services/usuario';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { validateRequestPayload } from '@/lib/api-validation';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -38,6 +39,10 @@ export async function POST(request: NextRequest) {
   try {
     const rl = normalLimiter.check(request);
     if (rl) return rl;
+    
+    const validationError = validateRequestPayload(request);
+    if (validationError) return validationError;
+    
     const supabase = getServiceClient();
     const auth_id = request.nextUrl.searchParams.get('auth_id');
     if (!auth_id) return NextResponse.json({ error: 'auth_id é obrigatório.' }, { status: 400 });
