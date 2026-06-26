@@ -4,6 +4,7 @@ import { listarBloqueios, criarBloqueio, AppError } from '@/lib/services/bloquei
 import { createRateLimiter } from '@/lib/rate-limit';
 import { validateRequestPayload } from '@/lib/api-validation';
 import { validateCsrfToken } from '@/lib/csrf';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
+    logger.error('bloqueios_list_error', { endpoint: '/api/bloqueios' });
     return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
   }
 }
@@ -67,6 +69,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 201 });
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
+    logger.error('bloqueios_create_error', { endpoint: '/api/bloqueios' });
     return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { validarReserva, AppError } from '@/lib/services/reserva';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ detail: e.message }, { status: e.status });
-    console.error('[api/reservas/validate]', e);
+    logger.error('validate_error', { endpoint: '/api/reservas/validate' });
     return NextResponse.json({ detail: 'Erro desconhecido' }, { status: 500 });
   }
 }

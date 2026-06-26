@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { validateUUID } from '@/lib/validators';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,8 +58,11 @@ export async function DELETE(
         if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
         return NextResponse.json({ ok: true });
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-        return NextResponse.json({ error: e?.message || 'Erro desconhecido' }, { status: 500 });
+    } catch (e) {
+        logger.error('bloqueio_delete_error', { endpoint: '/api/bloqueios/[id]' });
+        return NextResponse.json(
+          { error: e instanceof Error ? e.message : 'Erro desconhecido' },
+          { status: 500 }
+        );
     }
 }

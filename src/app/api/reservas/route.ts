@@ -4,6 +4,7 @@ import { listarReservas, criarReserva, AppError } from '@/lib/services/reserva';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { validateRequestPayload } from '@/lib/api-validation';
 import { validateCsrfToken } from '@/lib/csrf';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ function getToken(request: NextRequest) {
 
 function handleError(e: unknown) {
   if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
-  console.error('[api/reservas]', e);
+  logger.error('reservas_error', { endpoint: '/api/reservas' });
   return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
 }
 

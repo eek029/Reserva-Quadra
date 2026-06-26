@@ -5,6 +5,7 @@ import { createRateLimiter } from '@/lib/rate-limit';
 import { validateRequestPayload } from '@/lib/api-validation';
 import { validateUUID } from '@/lib/validators';
 import { validateCsrfToken } from '@/lib/csrf';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +62,7 @@ export async function PATCH(
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
-    console.error('[api/reservas/[id]]', e);
+    logger.error('reserva_cancel_error', { endpoint: '/api/reservas/[id]' });
     return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
   }
 }

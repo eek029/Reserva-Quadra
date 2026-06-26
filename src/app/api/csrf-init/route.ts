@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { generateCsrfToken, setCSRFTokenCookie } from '@/lib/csrf'
+import { logger } from '@/lib/logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
     setCSRFTokenCookie(response, token)
     return response
   } catch (error) {
-    console.error('[CSRF Init]', error)
+    logger.error('csrf_init_error', { endpoint: '/api/csrf-init' })
     return NextResponse.json({ error: 'Falha ao inicializar CSRF' }, { status: 500 })
   }
 }

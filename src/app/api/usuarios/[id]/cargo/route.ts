@@ -3,6 +3,7 @@ import { getServiceClient } from '@/lib/supabase-server';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { validateRequestPayload } from '@/lib/api-validation';
 import { validateUUID } from '@/lib/validators';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,7 +78,7 @@ export async function PATCH(
 
     return NextResponse.json({ ok: true, cargo_antigo: target.cargo, cargo_novo: novoCargo });
   } catch (e) {
-    console.error('[api/usuarios/[id]/cargo]', e);
+    logger.error('cargo_error', { endpoint: '/api/usuarios/[id]/cargo' });
     return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
   }
 }

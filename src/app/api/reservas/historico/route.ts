@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { listarHistoricoReservas, AppError } from '@/lib/services/reserva';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
-    console.error('[api/reservas/historico]', e);
+    logger.error('historico_error', { endpoint: '/api/reservas/historico' });
     return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
   }
 }

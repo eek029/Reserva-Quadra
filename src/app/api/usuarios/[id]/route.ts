@@ -47,7 +47,12 @@ export async function GET(
     });
 
     if (auditError) {
-      console.error('[audit] Falha ao registrar acesso a dados sensíveis:', auditError);
+      logger.error('audit_log_failed', {
+        endpoint: '/api/usuarios/[id]',
+        userId: caller.id,
+        targetUserId: id,
+        auditError: auditError.message,
+      });
     }
 
     return NextResponse.json(data);
