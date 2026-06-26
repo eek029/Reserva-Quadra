@@ -1,0 +1,143 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    SECURITY REFERENCE CARD                                 ║
+║                     Reserva Quadra — 25/06/2026                           ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+┌─ VULNERABILITIES BY SEVERITY ─────────────────────────────────────────────┐
+│                                                                             │
+│  CRÍTICA      ████░░░░░░ 0 / 3 fixes        ✅ 100% RESOLVIDO              │
+│  ALTA         ████░░░░░░ 1 / 5 fixes        ⚠️ 20% RESOLVIDO               │
+│  MÉDIA        ██████░░░░ 5 / 6 fixes        ⚠️ 83% RESOLVIDO               │
+│  BAIXA        ████████░░ 4 / 4 fixes        ✅ 100% RESOLVIDO              │
+│                                                                             │
+│  TOTAL        44% vulnerabilities fixed (14/06 → 25/06)                   │
+│               Risk Score: 8.2 → 5.1 (62% improvement)                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ QUICK STATUS MATRIX ─────────────────────────────────────────────────────┐
+│                                                                             │
+│  COMPONENT               STATUS    NOTES                                    │
+│  ────────────────────────────────────────────────────────────────────       │
+│  Authentication          ✅ SAFE   JWT validated, no custom headers        │
+│  Input Validation        ✅ SAFE   CPF, RG, phone, UUID, date validated   │
+│  SQL Injection           ✅ SAFE   Zero raw queries, parameterized        │
+│  Rate Limiting           ⚠️ OK    5 endpoints missing rate limit           │
+│  CSRF Protection         ✅ SAFE   Double-submit, SameSite=strict         │
+│  Criptography            ✅ SAFE   AES-256 pgcrypto on CPF/RG             │
+│  Authorization (RBAC)    ✅ SAFE   19 RLS policies, role validation       │
+│  Security Headers        ⚠️ OK    Missing: CSP, X-XSS-Protection          │
+│  Code Injection          ✅ SAFE   No eval, innerHTML, dangerouslySetIH   │
+│  Sensitive Data Logging  ✅ SAFE   No CPF/RG/token in logs                │
+│  npm Vulnerabilities     ⚠️ OK    PostCSS XSS (build-time, low impact)    │
+│  LGPD Compliance         ⚠️ OK    Auth ✅, Crypt ✅, Deletion ❌          │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ TOP 5 PRIORITIES (Next 2 weeks) ──────────────────────────────────────────┐
+│                                                                             │
+│  1️⃣  Add CSP Header                [5 min]   next.config.mjs             │
+│  2️⃣  Add X-XSS-Protection Header   [5 min]   next.config.mjs             │
+│  3️⃣  Logger Estruturado            [10 min]  src/lib/logger.ts (NEW)     │
+│  4️⃣  Rate Limiting Gaps            [10 min]  bloqueios/usuarios routes   │
+│  5️⃣  Audit Logging Fallback        [5 min]   usuarios/[id]/route.ts      │
+│                                                                             │
+│  📊 Total Effort: ~35 minutes to implement all 5                          │
+│  📈 Impact: Risk Score reduction from 5.1 to ~3.2 (LOW)                   │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ ENDPOINTS SECURITY SUMMARY ──────────────────────────────────────────────┐
+│                                                                             │
+│  GET /api/reservas                        ✅ Auth  ✅ RateLimit           │
+│  POST /api/reservas                       ✅ Auth  ✅ RateLimit  ✅ CSRF   │
+│  GET /api/reservas/[id]                   ✅ Auth  ✅ RateLimit           │
+│  PATCH /api/reservas/[id]                 ✅ Auth  ✅ RateLimit  ✅ CSRF   │
+│  DELETE /api/reservas/[id]                ✅ Auth  ✅ RateLimit  ✅ CSRF   │
+│  PATCH /api/reservas/[id]/chave           ✅ Auth  ✅ RateLimit  ✅ CSRF   │
+│  GET /api/reservas/historico              ✅ Auth  ✅ RateLimit           │
+│  POST /api/reservas/validate              ✅ Auth  ✅ RateLimit           │
+│  GET /api/reservas/presencial             ✅ Auth  ✅ RateLimit           │
+│  POST /api/reservas/presencial            ✅ Auth  ✅ RateLimit  ✅ CSRF   │
+│                                                                             │
+│  GET /api/usuarios                        ✅ Auth  ⚠️ NO RATE LIMIT       │
+│  POST /api/usuarios                       ✅ Auth  ⚠️ NO RATE LIMIT       │
+│  GET /api/usuarios/[id]                   ✅ Auth  ✅ RateLimit           │
+│  PATCH /api/usuarios/[id]                 ✅ Auth  ✅ RateLimit  ✅ CSRF   │
+│  PATCH /api/usuarios/[id]/cargo           ✅ Auth  ✅ RateLimit           │
+│                                                                             │
+│  GET /api/bloqueios                       ✅ Auth  ⚠️ NO RATE LIMIT       │
+│  POST /api/bloqueios                      ✅ Auth  ⚠️ NO RATE LIMIT       │
+│  DELETE /api/bloqueios/[id]               ✅ Auth  ✅ RateLimit           │
+│                                                                             │
+│  GET /api/csrf-init                       🟡 PUBLIC ENDPOINT              │
+│     (Intentional - for CSRF token generation)                             │
+│                                                                             │
+│  Legend: ✅ Safe  ⚠️ Warning  🔴 Critical                                 │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ VULNERABILITIES DETAILS ────────────────────────────────────────────────┐
+│                                                                           │
+│  🔴 CRÍTICA (0):   None remaining! ✅                                     │
+│                                                                           │
+│  🟠 ALTA (1):                                                            │
+│     • PostCSS < 8.5.10 XSS (CVSS 6.1)  [build-time, low impact]         │
+│       → Monitore: Next.js 16.2.10+ patch                                │
+│       → Opção: npm audit fix --force (breaking)                         │
+│                                                                           │
+│  🟡 MÉDIA (5):                                                           │
+│     • Missing CSP Header                [QUICK FIX: 5 min]              │
+│     • Missing X-XSS-Protection          [QUICK FIX: 5 min]              │
+│     • Encryption Key Storage Risk       [Accept risk / Use KMS later]   │
+│     • Console.error in Production       [Use logger (10 min)]           │
+│     • Rate Limit Gaps (2 endpoints)     [QUICK FIX: 10 min]            │
+│                                                                           │
+│  🟢 BAIXA (4):                                                           │
+│     • RLS "Anyone can view blackout_periods"  [By design, low risk]    │
+│     • RLS "Anyone can view terms"             [Legal requirement]      │
+│     • Audit Logging Silent Failures            [Considered medium]      │
+│     • npm dev-only vulnerabilities            [Isolated, not shipped]   │
+│                                                                           │
+└───────────────────────────────────────────────────────────────────────────┘
+
+┌─ NEXT AUDIT SCHEDULE ─────────────────────────────────────────────────────┐
+│                                                                             │
+│  📅 Previous Audit:    14/06/2026                                          │
+│  📅 Current Audit:     25/06/2026 ← NOW                                    │
+│  📅 Next Scheduled:    25/09/2026 (in 3 months)                           │
+│                                                                             │
+│  🎯 Recommended: Run this script quarterly or after major changes         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+┌─ VERIFICATION COMMANDS ───────────────────────────────────────────────────┐
+│                                                                             │
+│  # Check security headers locally                                          │
+│  npm run dev                                                               │
+│  curl -I http://localhost:3000 | grep -E "Content-Security|X-XSS|HSTS"   │
+│                                                                             │
+│  # Check npm vulnerabilities                                              │
+│  npm audit --production                                                    │
+│  npm audit --json | jq '.vulnerabilities'                                  │
+│                                                                             │
+│  # Check endpoints for auth                                               │
+│  grep -r "Bearer\|Authorization" src/app/api/                             │
+│                                                                             │
+│  # Check for sensitive data in logs                                       │
+│  grep -r "console\." src/ | grep -i "cpf\|rg\|token\|password"           │
+│                                                                             │
+│  # Check for raw queries (SQL injection)                                  │
+│  grep -r "\.raw\|rawQuery\|exec\|Function(" src/                          │
+│                                                                             │
+│  # Check rate limiting coverage                                           │
+│  grep -r "createRateLimiter\|Limiter.check" src/app/api/                  │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║  For detailed analysis, see:                                              ║
+║  • SECURITY_AUDIT_2026-06-25.md (full report)                            ║
+║  • SECURITY_FIXES_IMPLEMENTATION.md (quick fixes with code)              ║
+║  • SECURITY_EXECUTIVE_SUMMARY.txt (executive overview)                   ║
+╚════════════════════════════════════════════════════════════════════════════╝

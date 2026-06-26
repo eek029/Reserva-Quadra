@@ -24,6 +24,14 @@ const nextConfig = {
                         value: 'DENY',
                     },
                     {
+                        key: 'X-XSS-Protection',
+                        value: '1; mode=block',
+                    },
+                    {
+                        key: 'Content-Security-Policy',
+                        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; font-src 'self' data:; connect-src 'self' https://bgkedrkyeofuwctiteuf.supabase.co; frame-ancestors 'none';",
+                    },
+                    {
                         key: 'Referrer-Policy',
                         value: 'strict-origin-when-cross-origin',
                     },

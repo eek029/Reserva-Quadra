@@ -5,6 +5,7 @@ import { createRateLimiter } from '@/lib/rate-limit';
 import { validateRequestPayload } from '@/lib/api-validation';
 import { validateUUID } from '@/lib/validators';
 import { validateCsrfToken } from '@/lib/csrf';
+import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,14 +51,14 @@ export async function GET(
     }
 
     return NextResponse.json(data);
-  } catch (e) {
-    if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
-    console.error('[api/usuarios/[id]]', e);
-    return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
-  }
-}
+   } catch (e) {
+     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
+     logger.error('usuario_get_error', { endpoint: '/api/usuarios/[id]' });
+     return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
+   }
+ }
 
-export async function PATCH(
+ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -91,12 +92,12 @@ export async function PATCH(
     if (!callerProfile || !ADMIN_CARGOS.includes(callerProfile.cargo))
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
 
-    const body = await request.json();
-    await atualizarUsuario(supabase, id, caller.id, body);
-    return NextResponse.json({ ok: true });
-  } catch (e) {
-    if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
-    console.error('[api/usuarios/[id]]', e);
-    return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
-  }
-}
+     const body = await request.json();
+     await atualizarUsuario(supabase, id, caller.id, body);
+     return NextResponse.json({ ok: true });
+   } catch (e) {
+     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
+     logger.error('usuario_update_error', { endpoint: '/api/usuarios/[id]' });
+     return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
+   }
+ }
