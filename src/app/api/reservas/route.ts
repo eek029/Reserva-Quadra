@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
+const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
 
 function getToken(request: NextRequest) {
   const auth = request.headers.get('Authorization');

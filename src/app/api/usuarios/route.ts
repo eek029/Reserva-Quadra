@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
-const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 20 });
+const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
 
 export async function GET(request: NextRequest) {
   try {

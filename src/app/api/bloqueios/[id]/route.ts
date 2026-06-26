@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 5 });
+const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
 const ADMIN_ROLES = ['Síndico Geral', 'SysAdmin'];
 
 // DELETE /api/bloqueios/[id]
