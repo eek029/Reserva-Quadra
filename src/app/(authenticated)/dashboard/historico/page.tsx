@@ -18,6 +18,11 @@ interface ReservaHistorico {
   observacao: string | null
   telefone_contato: string | null
   status_chave: string | null
+  retirada_em: string | null
+  devolvida_em: string | null
+  ocorrencia_texto: string | null
+  turno_registro: string | null
+  created_at: string
   usuarios: {
     nome_completo: string
     foto_url: string | null
@@ -29,6 +34,8 @@ interface ReservaHistorico {
     torre: string | null
     apartamento: string | null
   } | null
+  porteiro_entrega: { nome_completo: string } | null
+  porteiro_recebimento: { nome_completo: string } | null
 }
 
 const STATUS_OPCOES = ['todas', 'ativa', 'cancelada'] as const
@@ -201,7 +208,8 @@ export default function HistoricoPage() {
                   </div>
                 </button>
                 {isExpanded && (
-                  <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 space-y-2 text-sm">
+                  <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 space-y-3 text-sm">
+                    {/* Morador + Contato */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       <div>
                         <span className="text-gray-400 font-semibold text-xs">Morador</span>
@@ -217,35 +225,83 @@ export default function HistoricoPage() {
                           <p className="text-gray-700">{reserva.telefone_contato}</p>
                         </div>
                       )}
+                    </div>
+
+                    {/* Timeline da reserva */}
+                    <div className="space-y-1.5">
+                      <span className="text-gray-400 font-semibold text-xs block">Timeline</span>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-xs">
+                          <div className="w-2 h-2 rounded-full bg-violet-400 shrink-0" />
+                          <span className="text-gray-500">Reserva criada</span>
+                          <span className="text-gray-400 ml-auto">
+                            {new Date(reserva.created_at).toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+                        {reserva.retirada_em && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <div className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+                            <span className="text-gray-500">Chave retirada</span>
+                            <span className="text-gray-400 ml-auto">
+                              {new Date(reserva.retirada_em).toLocaleString('pt-BR')}
+                            </span>
+                            {reserva.porteiro_entrega && (
+                              <span className="text-gray-400">• {reserva.porteiro_entrega.nome_completo}</span>
+                            )}
+                          </div>
+                        )}
+                        {reserva.devolvida_em && (
+                          <div className="flex items-center gap-2 text-xs">
+                            <div className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
+                            <span className="text-gray-500">Chave devolvida</span>
+                            <span className="text-gray-400 ml-auto">
+                              {new Date(reserva.devolvida_em).toLocaleString('pt-BR')}
+                            </span>
+                            {reserva.porteiro_recebimento && (
+                              <span className="text-gray-400">• {reserva.porteiro_recebimento.nome_completo}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Ocorrência */}
+                    {reserva.ocorrencia_texto && (
+                      <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                        <span className="text-red-500 font-semibold text-xs">Ocorrência</span>
+                        <p className="text-red-700 text-xs mt-0.5">{reserva.ocorrencia_texto}</p>
+                      </div>
+                    )}
+
+                    {/* Cancelamento */}
+                    {reserva.status === 'cancelada' && (
+                      <div className="bg-red-50 border border-red-100 rounded-lg px-3 py-2 space-y-1">
+                        <div className="flex items-center gap-1 text-xs text-red-500 font-semibold">
+                          <XCircle className="w-3 h-3" /> Cancelada
+                        </div>
+                        <p className="text-red-700 text-xs">
+                          <strong>Motivo:</strong> {reserva.motivo_cancelamento ?? '—'}
+                        </p>
+                        <p className="text-red-700 text-xs">
+                          <strong>Por:</strong> {reserva.cancelado_por
+                            ? `${reserva.cancelado_por.nome_completo}${reserva.cancelado_por.torre ? ` (T${reserva.cancelado_por.torre})` : ''} (administração)`
+                            : 'Morador (auto-cancelamento)'}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Detalhes extras */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {reserva.observacao && (
                         <div>
                           <span className="text-gray-400 font-semibold text-xs">Observação</span>
                           <p className="text-gray-700">{reserva.observacao}</p>
                         </div>
                       )}
-                      {reserva.status === 'cancelada' && (
-                        <>
-                          <div>
-                            <span className="text-gray-400 font-semibold text-xs flex items-center gap-1">
-                              <XCircle className="w-3 h-3 text-red-400" /> Motivo do cancelamento
-                            </span>
-                            <p className="text-gray-700">{reserva.motivo_cancelamento ?? '—'}</p>
-                          </div>
-                          {reserva.cancelado_por && (
-                            <div>
-                              <span className="text-gray-400 font-semibold text-xs">Cancelado por</span>
-                              <p className="text-gray-700">
-                                {reserva.cancelado_por.nome_completo}
-                                {reserva.cancelado_por.torre && ` (T${reserva.cancelado_por.torre})`}
-                              </p>
-                            </div>
-                          )}
-                        </>
-                      )}
-                      {reserva.status_chave && reserva.status_chave !== 'aguardando' && (
+                      {reserva.turno_registro && (
                         <div>
-                          <span className="text-gray-400 font-semibold text-xs">Chave</span>
-                          <p className="text-gray-700 capitalize">{reserva.status_chave}</p>
+                          <span className="text-gray-400 font-semibold text-xs">Turno de registro</span>
+                          <p className="text-gray-700">{reserva.turno_registro}</p>
                         </div>
                       )}
                     </div>

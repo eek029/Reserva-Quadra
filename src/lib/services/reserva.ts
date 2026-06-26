@@ -105,7 +105,9 @@ export async function listarHistoricoReservas(
     .from('reservas')
     .select(`*,
       usuarios!usuario_id(nome_completo, foto_url, torre, apartamento),
-      cancelado_por!cancelado_por(nome_completo, torre, apartamento)
+      cancelado_por(nome_completo, torre, apartamento),
+      porteiro_entrega:entregue_por(nome_completo),
+      porteiro_recebimento:recebida_por(nome_completo)
     `, { count: 'exact' })
     .gte('data_reserva', dataInicio)
     .lte('data_reserva', dataFim)

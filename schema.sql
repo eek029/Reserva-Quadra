@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS public.reservas (
     entregue_por uuid REFERENCES public.usuarios(id),
     devolvida_em timestamp with time zone,
     recebida_por uuid REFERENCES public.usuarios(id),
+    cancelado_por uuid REFERENCES public.usuarios(id),
     ocorrencia_texto text,
     turno_registro text CHECK (turno_registro IN ('Turno Dia', 'Turno Noite')),
     observacao text
