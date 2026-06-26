@@ -1,0 +1,2 @@
+-- Deletion is handled via API route with service client, not via RLS.
+-- No RLS DELETE policy needed (prevents users from deleting broadcasts directly).

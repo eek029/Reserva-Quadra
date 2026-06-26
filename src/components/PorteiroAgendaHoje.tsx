@@ -212,7 +212,7 @@ export default function PorteiroAgendaHoje() {
                 fetchReservasHoje();
             } else {
                 const errData = await response.json();
-                alert(`Erro: ${errData.detail}`);
+                alert(`Erro: ${errData.error || errData.detail || 'Erro desconhecido'}`);
             }
         } catch (error) {
             console.error('Erro na operação de chaves', error);
