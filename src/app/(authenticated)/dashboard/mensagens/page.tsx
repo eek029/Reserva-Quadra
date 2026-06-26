@@ -11,6 +11,7 @@ interface Notificacao {
     mensagem: string;
     lida: boolean;
     created_at: string;
+    destinatario_id: string | null;
 }
 
 const ADMIN_CARGOS = ['SysAdmin', 'Síndico Geral', 'Subsíndico'];

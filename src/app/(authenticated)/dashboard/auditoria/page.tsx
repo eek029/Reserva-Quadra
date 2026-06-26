@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ShieldCheck, History, FileText, Download } from 'lucide-react';
+import { ShieldCheck, History, FileText, Download, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface AuditReserva {
@@ -19,19 +19,59 @@ interface AuditReserva {
         nome_completo: string;
         torre: string;
         apartamento: string;
-    };
+    } | null;
     porteiro_entrega: {
         nome_completo: string;
-    };
+    } | null;
     porteiro_recebimento: {
         nome_completo: string;
-    };
+    } | null;
 }
 
 export default function AuditoriaChavesPage() {
     const [historico, setHistorico] = useState<AuditReserva[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthorized, setIsAuthorized] = useState(false);
+    const [csvLoading, setCsvLoading] = useState(false);
+
+    const csvCell = (v: string): string => {
+        const escaped = v.replace(/"/g, '""');
+        if (/^[=+\-@]/.test(escaped)) return `"'${escaped}"`;
+        return `"${escaped}"`;
+    };
+
+    const exportCSV = useCallback(() => {
+        setCsvLoading(true);
+        try {
+            const header = 'Data,Turno,Morador,Torre,Apto,Retirada,Entregue por,Devolvida,Recebida por,Ocorrência,Status';
+            const rows = historico.map(r => {
+                const data = new Date(r.data_reserva).toLocaleDateString('pt-BR');
+                const morador = r.usuarios?.nome_completo || '--';
+                const torre = r.usuarios?.torre || '--';
+                const apto = r.usuarios?.apartamento || '--';
+                const retirada = r.retirada_em ? new Date(r.retirada_em).toLocaleString('pt-BR') : '--';
+                const entreguePor = r.porteiro_entrega?.nome_completo || '--';
+                const devolvida = r.devolvida_em ? new Date(r.devolvida_em).toLocaleString('pt-BR') : '--';
+                const recebidaPor = r.porteiro_recebimento?.nome_completo || '--';
+                const ocorrencia = r.ocorrencia_texto || '--';
+                const status = r.status_chave.replace('_', ' ');
+                return [data, r.turno_registro || '--', morador, torre, apto, retirada, entreguePor, devolvida, recebidaPor, ocorrencia, status].map(csvCell).join(',');
+            });
+
+            const bom = '\uFEFF';
+            const blob = new Blob([bom + header + '\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `auditoria-chaves-${new Date().toISOString().slice(0, 10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } finally {
+            setCsvLoading(false);
+        }
+    }, [historico]);
 
     useEffect(() => {
         const verifyAccessAndFetch = async () => {
@@ -85,8 +125,13 @@ export default function AuditoriaChavesPage() {
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">Histórico completo de retirada, devolução de chaves e ocorrências.</p>
                 </div>
-                <button className="bg-gray-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-700 transition font-semibold text-sm">
-                    <Download className="w-4 h-4" /> Exportar CSV
+                <button
+                    onClick={exportCSV}
+                    disabled={csvLoading || historico.length === 0}
+                    className={`px-4 py-2 rounded-lg flex items-center gap-2 transition font-semibold text-sm ${csvLoading || historico.length === 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gray-800 text-white hover:bg-gray-700'}`}
+                >
+                    {csvLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    {csvLoading ? 'Gerando...' : 'Exportar CSV'}
                 </button>
             </div>
 

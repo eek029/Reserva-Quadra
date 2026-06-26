@@ -19,6 +19,7 @@ interface Notificacao {
     mensagem: string;
     lida: boolean;
     created_at: string;
+    destinatario_id: string | null;
 }
 
 export default function Header() {
@@ -27,6 +28,7 @@ export default function Header() {
     const isDashboard = pathname === '/dashboard' || pathname === '/dashboard/auditoria';
 
     const [user, setUser] = useState<Usuario | null>(null);
+    const [userId, setUserId] = useState<string | null>(null);
     const [notifications, setNotifications] = useState<Notificacao[]>([]);
     const [loadingUser, setLoadingUser] = useState(true);
     const [showNotifications, setShowNotifications] = useState(false);
@@ -35,7 +37,7 @@ export default function Header() {
         const fetchUserData = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-                // Fetch role directly from db
+                setUserId(session.user.id);
                 const { data: userData } = await supabase
                     .from('usuarios')
                     .select('*')
@@ -44,7 +46,6 @@ export default function Header() {
 
                 if (userData) setUser(userData);
 
-                // Fetch notifications via Supabase using RLS correctly
                 try {
                     const { data: notifs, error } = await supabase
                         .from('notificacoes')
@@ -65,6 +66,26 @@ export default function Header() {
         };
         fetchUserData();
     }, []);
+
+    // Realtime: receber novas notificacoes sem recarregar
+    useEffect(() => {
+        if (!userId) return;
+
+        const channel = supabase
+            .channel('notificacoes-realtime')
+            .on('postgres_changes',
+                { event: 'INSERT', schema: 'public', table: 'notificacoes' },
+                (payload) => {
+                    const n = payload.new as Notificacao;
+                    if (n.destinatario_id === null || n.destinatario_id === userId) {
+                        setNotifications(prev => [n, ...prev]);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => { supabase.removeChannel(channel); };
+    }, [userId]);
 
     const isAdmin = user && ['SysAdmin', 'Síndico Geral', 'Subsíndico'].includes(user.cargo);
 
