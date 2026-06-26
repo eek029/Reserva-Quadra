@@ -60,6 +60,10 @@ export const criarUsuarioSchema = z.object({
 export const atualizarUsuarioSchema = z.object({
   status: z.enum(['aprovado', 'rejeitado', 'pendente']).optional(),
   suspenso_ate: z.string().nullable().optional(),
+  nome_completo: z.string().min(3).optional(),
+  cpf: z.string().regex(cpfRegex, 'CPF deve estar no formato XXX.XXX.XXX-XX').optional(),
+  rg: z.string().regex(rgRegex, 'RG deve estar no formato XX.XXX.XXX-X').optional(),
+  foto_url: z.string().url().optional(),
 })
 
 export const dataQuerySchema = z.string().regex(dateRegex, 'Formato deve ser YYYY-MM-DD').optional()
