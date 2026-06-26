@@ -1,20 +1,20 @@
-# Manual do Usuario — Reserva Quadra
+# Manual do Usuário — Reserva Quadra
 
-Sistema de agendamento da quadra poliesportiva do **Complexo Julio Prestes**.
+Sistema de agendamento da quadra poliesportiva do **Complexo Júlio Prestes**.
 
 ---
 
-## Sumario
+## Sumário
 
 1. [Acessando o Sistema](#1-acessando-o-sistema)
 2. [Morador — Como Reservar a Quadra](#2-morador--como-reservar-a-quadra)
 3. [Morador — Minhas Reservas e Cancelamento](#3-morador--minhas-reservas-e-cancelamento)
-4. [Sindico / Subsindico — Painel de Gestao](#4-sindico--subsindico--painel-de-gestao)
+4. [Síndico / Subsíndico — Painel de Gestão](#4-sindico--subsindico--painel-de-gestao)
 5. [Porteiro — Prancheta Operacional](#5-porteiro--prancheta-operacional)
 6. [Porteiro — Controle de Chaves](#6-porteiro--controle-de-chaves)
 7. [Porteiro — Reserva Presencial](#7-porteiro--reserva-presencial)
-8. [Porteiro — Mural e Comunicacao](#8-porteiro--mural-e-comunicacao)
-9. [Fluxos Rapidados](#9-fluxos-rapidos)
+8. [Porteiro — Mural e Comunicação](#8-porteiro--mural-e-comunicacao)
+9. [Fluxos Rápidos](#9-fluxos-rapidos)
 10. [Perguntas Frequentes](#10-perguntas-frequentes)
 
 ---
@@ -40,9 +40,9 @@ https://reserva-quadra.vercel.app
    - Telefone
    - Torre e apartamento
    - Bloco (apenas Torre 5)
-   - Foto (opcional)
-4. Apos enviar, seu cadastro fica **"pendente"** ate que um sindico da sua torre aprove
-5. Quando aprovado, voce recebe uma notificacao e pode comecar a reservar
+   - Foto
+4. Após enviar, seu cadastro fica **"pendente"** até que um síndico da sua torre aprove
+5. Quando aprovado, você recebe uma notificação e pode começar a reservar
 
 ### Login
 
@@ -57,34 +57,34 @@ https://reserva-quadra.vercel.app
 
 | Regra | Detalhe |
 |-------|---------|
-| Horario de funcionamento | 9h as 22h |
-| Duracao maxima | 2 horas por reserva |
+| Horário de funcionamento | 9h às 22h |
+| Duração máxima | 2 horas por reserva |
 | Limite por dia | 2 horas por unidade (torre + apto) |
-| Antecedencia | Pode reservar para qualquer dia futuro |
-| Termos de uso | Obrigatorio aceitar a cada reserva |
+| Antecedência | Pode reservar para qualquer dia futuro |
+| Termos de uso | Obrigatório aceitar a cada reserva |
 
 ### Passo a Passo
 
-1. Faca login no sistema
-2. Voce ve o **Quadro de Reservas** (calendario mensal)
-3. Clique em um dia para ver os horarios disponiveis
-   - Horarios em **verde** = disponiveis
-   - Horarios em **cinza** = ja reservados
-   - Horarios em **vermelho** = bloqueados pela administracao
-4. Escolha um horario livre
+1. Faça login no sistema
+2. Você vê o **Quadro de Reservas** (calendário mensal)
+3. Clique em um dia para ver os horários disponíveis
+   - Horários em **verde** = disponíveis
+   - Horários em **cinza** = já reservados
+   - Horários em **vermelho** = bloqueados pela administração
+4. Escolha um horário livre
 5. Uma janela aparece com os **Termos de Uso** da quadra
    - Leia os termos
    - Marque a caixa "Li e concordo"
    - Clique em "Confirmar Reserva"
-6. Pronto! A reserva aparece no calendario e em "Minhas Reservas"
+6. Pronto! A reserva aparece no calendário e em "Minhas Reservas"
 
 ### Acompanhamento no Dia
 
 No dia da sua reserva:
-- O porteiro ve seu nome na prancheta
-- Va ate a portaria para pegar a chave
+- O porteiro vê seu nome na prancheta
+- Vá até a portaria para pegar a chave
 - O porteiro registra a retirada
-- Use a quadra pelo periodo reservado
+- Use a quadra pelo período reservado
 - Devolva a chave na portaria ao terminar
 
 ---
@@ -94,79 +94,79 @@ No dia da sua reserva:
 ### Minhas Reservas
 
 Acesse a aba **"Reservas"** no menu inferior para ver:
-- **Reservas Ativas:** horarios futuros que voce agendou
-- **Reservas Canceladas:** reservas que voce cancelou
+- **Reservas Ativas:** horários futuros que você agendou
+- **Reservas Canceladas:** reservas que você cancelou
 
 ### Cancelar uma Reserva
 
-1. Va em **"Reservas"** > **"Ativas"**
+1. Vá em **"Reservas"** > **"Ativas"**
 2. Clique em **"Cancelar"** na reserva desejada
 3. Confirme o cancelamento na janela que aparece
-4. A reserva e movida para "Canceladas" e o horario e liberado
+4. A reserva é movida para "Canceladas" e o horário é liberado
 
-> **Atencao:** Cancelamento e definitivo. Nao e possivel reativar uma reserva cancelada.
+> **Atenção:** O cancelamento é definitivo. Não é possível reativar uma reserva cancelada.
 
 ---
 
-## 4. Sindico / Subsindico — Painel de Gestao
+## 4. Síndico / Subsíndico — Painel de Gestão
 
-Sindicos e subsindicos tem acesso a funcionalidades administrativas no menu:
+Síndicos e subsíndicos têm acesso a funcionalidades administrativas no menu:
 - **Reservas** — quadro geral
-- **Quadro** — atalho para o calendario
-- **Mensagens** — central de notificacoes
-- **Usuarios** — gestao de cadastros
-- **Auditoria** (apenas Sindico Geral) — log de todas as acoes
-- **Historico** — consulta de reservas passadas
+- **Quadro** — atalho para o calendário
+- **Mensagens** — central de notificações
+- **Usuários** — gestão de cadastros
+- **Auditoria** (apenas Síndico Geral) — log de todas as ações
+- **Histórico** — consulta de reservas passadas
 
-### Aprovacao de Cadastros
+### Aprovação de Cadastros
 
 Quando um novo morador se cadastra:
-1. Uma notificacao aparece no painel do sindico
+1. Uma notificação aparece no painel do síndico
 2. Clique em **"Ver ficha"** para analisar os dados
-3. O CPF aparece oculto — clique em "Revelar" se necessario
+3. O CPF aparece oculto — clique em "Revelar" se necessário
 4. Escolha **"Aprovar"** ou **"Rejeitar"**
-5. O morador recebe uma notificacao com o resultado
+5. O morador recebe uma notificação com o resultado
 
-### Historico de Reservas
+### Histórico de Reservas
 
-1. Va em **"Historico"**
+1. Vá em **"Histórico"**
 2. Use os filtros para buscar:
-   - Periodo (data inicial e final)
+   - Período (data inicial e final)
    - Status (Todas / Ativa / Cancelada)
    - Nome do morador
 3. Clique em qualquer reserva para expandir e ver:
-   - Timeline completa (criacao, retirada/devolucao de chave)
+   - Timeline completa (criação, retirada/devolução de chave)
    - Quem entregou/recebeu a chave
-   - Ocorrencia registrada na devolucao
-   - Motivo de cancelamento (se aplicavel)
+   - Ocorrência registrada na devolução
+   - Motivo de cancelamento (se aplicável)
 
-### Mural de Comunicacao (Broadcast)
+### Mural de Comunicação (Broadcast)
 
-1. No painel, va ate a secao **"Mural e Comunicacao"**
-2. Escolha o destinatario:
-   - **"Todos os Moradores"** — mensagem para todo o condominio
-   - **"Morador Especifico"** — mensagem privada
-3. Digite o conteudo da mensagem
+1. No painel, vá até a seção **"Mural e Comunicação"**
+2. Escolha o destinatário:
+   - **"Todos os Moradores"** — mensagem para todo o condomínio
+   - **"Morador Específico"** — mensagem privada
+3. Digite o conteúdo da mensagem
 4. Clique em **"Disparar"**
-5. A mensagem aparece na central de notificacoes dos destinatarios
+5. A mensagem aparece na central de notificações dos destinatários
 
 ---
 
 ## 5. Porteiro — Prancheta Operacional
 
-### Visao Geral
+### Visão Geral
 
-A **Prancheta Operacional** e a tela principal do porteiro. Ela mostra:
+A **Prancheta Operacional** é a tela principal do porteiro. Ela mostra:
 - Todas as reservas do dia atual
 - Status da chave de cada reserva
-- Botoes de acao para gerenciar as chaves
-- Botoes para criar reservas presenciais
-- Secao de Cadastros Pendentes
-- Mural de Comunicacao
+- Botões de ação para gerenciar as chaves
+- Botões para criar reservas presenciais
+- Seção de Cadastros Pendentes
+- Mural de Comunicação
 
 ### Bloqueios do Dia
 
-Se a administracao bloqueou algum horario (ex: manutencao), ele aparece destacado no topo da prancheta em amarelo.
+Se a administração bloqueou algum horário (ex: manutenção), ele aparece destacado no topo da prancheta em amarelo.
 
 ---
 
@@ -174,10 +174,10 @@ Se a administracao bloqueou algum horario (ex: manutencao), ele aparece destacad
 
 ### Ciclo da Chave
 
-Cada reserva passa por tres estados:
+Cada reserva passa por três estados:
 
 ```
-AGUARDANDO  →  EM USO  →  CONCLUIDA
+AGUARDANDO  →  EM USO  →  CONCLUÍDA
   (criada)     (chave    (chave
                 retirada)  devolvida)
 ```
@@ -187,83 +187,83 @@ AGUARDANDO  →  EM USO  →  CONCLUIDA
 1. Na prancheta, localize o card do morador com status **"AGUARDANDO"**
 2. Clique em **"Entregar Chave"**
 3. Pronto! O status muda para **"EM USO"**
-4. O morador recebe uma notificacao: "Sua chave foi retirada na portaria"
+4. O morador recebe uma notificação: "Sua chave foi retirada na portaria"
 
-### Receber Chave (Devolucao)
+### Receber Chave (Devolução)
 
 1. Localize o card com status **"EM USO"**
 2. Clique em **"Receber Chave"**
-3. Uma janela aparece — opcionalmente, digite uma **ocorrencia**:
+3. Uma janela aparece — opcionalmente, digite uma **ocorrência**:
    - Ex: "Chave devolvida com 15 min de atraso"
    - Ex: "Chave devolvida em perfeito estado"
-4. Clique em **"Confirmar Devolucao"**
-5. O status muda para **"CONCLUIDA"** e o card exibe "Turno Concluido"
+4. Clique em **"Confirmar Devolução"**
+5. O status muda para **"CONCLUÍDA"** e o card exibe "Turno Concluído"
 
 ### Timeline
 
-Clique em **"Timeline"** em qualquer card para ver o historico de eventos daquela reserva:
-- Data/hora da criacao
+Clique em **"Timeline"** em qualquer card para ver o histórico de eventos daquela reserva:
+- Data/hora da criação
 - Data/hora da retirada da chave + nome do porteiro
-- Data/hora da devolucao da chave + nome do porteiro + ocorrencia (se houver)
+- Data/hora da devolução da chave + nome do porteiro + ocorrência (se houver)
 
 ---
 
 ## 7. Porteiro — Reserva Presencial
 
-Quando um morador sem cadastro (ou que nao consegue acessar o app) quer usar a quadra:
+Quando um morador sem cadastro (ou que não consegue acessar o app) quer usar a quadra:
 
 1. Na prancheta, clique em **"Nova Reserva Presencial"**
 2. Preencha:
-   - **Nome do morador** — ex: "Joao Silva — Torre 2, Apto 304"
+   - **Nome do morador** — ex: "João Silva — Torre 2, Apto 304"
    - **Telefone** — formato (XX) XXXXX-XXXX
-   - **Horario** — selecione um horario livre
+   - **Horário** — selecione um horário livre
 3. Clique em **"Confirmar Reserva"**
-4. A reserva aparece na prancheta com a tag **"Presencial"** e o telefone visivel
+4. A reserva aparece na prancheta com a tag **"Presencial"** e o telefone visível
 
-> A reserva presencial e vinculada ao porteiro para fins de auditoria, mas exibe o nome digitado na lista do dia e no historico.
+> A reserva presencial é vinculada ao porteiro para fins de auditoria, mas exibe o nome digitado na lista do dia e no histórico.
 
 ---
 
-## 8. Porteiro — Mural e Comunicacao
+## 8. Porteiro — Mural e Comunicação
 
-Porteiros podem enviar notificacoes:
+Porteiros podem enviar notificações:
 - **"Todos os Moradores"** — comunicado geral
-- **"Morador Especifico"** — mensagem privada
+- **"Morador Específico"** — mensagem privada
 
-1. Na secao "Mural e Comunicacao", selecione o destinatario
+1. Na seção "Mural e Comunicação", selecione o destinatário
 2. Digite a mensagem
 3. Clique em **"Disparar"**
 
 ---
 
-## 9. Fluxos Rapidos
+## 9. Fluxos Rápidos
 
 ### Fluxo Completo — Reserva Online (Morador)
 
 ```
 1. Login
-2. Escolhe dia no calendario
-3. Seleciona horario livre
+2. Escolhe dia no calendário
+3. Seleciona horário livre
 4. Aceita termos
 5. Reserva confirmada ✓
 
 No dia:
-6. Va a portaria
+6. Vá à portaria
 7. Porteiro entrega a chave
 8. Use a quadra
 9. Devolva a chave
-10. Porteiro registra devolucao
+10. Porteiro registra devolução
 ```
 
 ### Fluxo Completo — Reserva Presencial
 
 ```
-1. Morador vai a portaria
+1. Morador vai à portaria
 2. Porteiro cria reserva presencial
 3. Porteiro entrega a chave
 4. Morador usa a quadra
 5. Morador devolve a chave
-6. Porteiro registra devolucao
+6. Porteiro registra devolução
 ```
 
 ### Fluxo de Cadastro
@@ -271,10 +271,10 @@ No dia:
 ```
 1. Morador se cadastra no site
 2. Status: "pendente"
-3. Sindico aprova
-4. Morador recebe notificacao
+3. Síndico aprova
+4. Morador recebe notificação
 5. Status: "ativo"
-6. Morador ja pode reservar
+6. Morador já pode reservar
 ```
 
 ---
@@ -283,31 +283,31 @@ No dia:
 
 ### Posso reservar mais de 2 horas seguidas?
 
-Nao. O limite e de 2 horas por dia por unidade.
+Não. O limite é de 2 horas por dia por unidade.
 
 ### Esqueci de devolver a chave. O que acontece?
 
-O porteiro registra a ocorrencia na devolucao. Casos recorrentes podem gerar notificacao da administracao.
+O porteiro registra a ocorrência na devolução. Casos recorrentes podem gerar notificação da administração.
 
-### Alguem reservou meu horario favorito. O que fazer?
+### Alguém reservou meu horário favorito. O que fazer?
 
-O sistema segue a ordem de chegada (first come, first served). Tente reservar com mais antecedencia.
+O sistema segue a ordem de chegada (first come, first served). Tente reservar com mais antecedência.
 
-### Meu cadastro esta como "pendente". Quanto tempo leva?
+### Meu cadastro está como "pendente". Quanto tempo leva?
 
-Assim que um sindico ou subsindico da sua torre revisar seu cadastro. Se passar muito tempo, fale com o sindico do seu predio.
+Assim que um síndico ou subsíndico da sua torre revisar seu cadastro. Se passar muito tempo, fale com o síndico do seu prédio.
 
-### Posso cancelar e outra pessoa pegar o horario?
+### Posso cancelar e outra pessoa pegar o horário?
 
-Sim. Ao cancelar, o horario e liberado imediatamente e qualquer morador pode reserva-lo.
+Sim. Ao cancelar, o horário é liberado imediatamente e qualquer morador pode reservá-lo.
 
 ### O que significa "Presencial" na prancheta?
 
-Significa que a reserva foi feita na portaria pelo porteiro, em nome de um morador que estava presente mas nao tem cadastro no sistema (ou nao conseguiu acessar o app).
+Significa que a reserva foi feita na portaria pelo porteiro, em nome de um morador que estava presente mas não tem cadastro no sistema (ou não conseguiu acessar o app).
 
-### Como vejo o historico de uso da quadra?
+### Como vejo o histórico de uso da quadra?
 
-Sindicos e subsindicos tem acesso a pagina de **Historico**, que permite filtrar por periodo, status e morador.
+Síndicos e subsíndicos têm acesso à página de **Histórico**, que permite filtrar por período, status e morador.
 
 ---
 
