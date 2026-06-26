@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ShieldCheck, CheckCircle2, X, User, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 interface Usuario {
     id: string;
@@ -327,9 +328,10 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
             setActionLoading(true);
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token || '';
+            const csrf = getCsrfToken();
             const res = await fetch(`/api/usuarios/${id}`, {
                 method: 'PATCH',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'x-csrf-token': csrf || '' },
                 body: JSON.stringify({ status: 'aprovado' }),
             });
             if (!res.ok) throw new Error(await res.text());
@@ -348,9 +350,10 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
             setActionLoading(true);
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token || '';
+            const csrf = getCsrfToken();
             const res = await fetch(`/api/usuarios/${id}`, {
                 method: 'PATCH',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'x-csrf-token': csrf || '' },
                 body: JSON.stringify({ status: 'rejeitado' }),
             });
             if (!res.ok) throw new Error(await res.text());

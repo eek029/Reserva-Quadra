@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { validarReserva, AppError } from '@/lib/services/reserva';
 import { createRateLimiter } from '@/lib/rate-limit';
+import { validateCsrfToken } from '@/lib/csrf';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,9 @@ export async function POST(request: NextRequest) {
   try {
     const rl = normalLimiter.check(request);
     if (rl) return rl;
+    if (!validateCsrfToken(request)) {
+      return NextResponse.json({ error: 'CSRF token inválido.' }, { status: 403 });
+    }
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ detail: 'Não autorizado.' }, { status: 401 });
 

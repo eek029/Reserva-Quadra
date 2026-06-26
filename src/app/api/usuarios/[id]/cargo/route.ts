@@ -3,6 +3,7 @@ import { getServiceClient } from '@/lib/supabase-server';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { validateRequestPayload } from '@/lib/api-validation';
 import { validateUUID } from '@/lib/validators';
+import { validateCsrfToken } from '@/lib/csrf';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -32,6 +33,10 @@ export async function PATCH(
     
     const validationError = validateRequestPayload(request);
     if (validationError) return validationError;
+    
+    if (!validateCsrfToken(request)) {
+      return NextResponse.json({ error: 'CSRF token inválido.' }, { status: 403 });
+    }
     
     const { id } = await params;
     const uuidValidation = validateUUID(id);

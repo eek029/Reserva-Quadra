@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { validateUUID } from '@/lib/validators';
+import { validateCsrfToken } from '@/lib/csrf';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,10 @@ export async function DELETE(
         const uuidValidation = validateUUID(id);
         if (!uuidValidation.valid) {
           return NextResponse.json({ error: uuidValidation.error }, { status: 400 });
+        }
+        
+        if (!validateCsrfToken(request)) {
+          return NextResponse.json({ error: 'CSRF token inválido.' }, { status: 403 });
         }
         
         const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

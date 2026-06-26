@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { getCsrfToken } from '@/lib/csrf-client';
 import { Camera, Upload, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -177,11 +178,13 @@ export default function CompletarCadastroPage() {
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token || '';
 
+            const csrf = getCsrfToken();
             const response = await fetch(`/api/usuarios?auth_id=${authUserId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
+                    'x-csrf-token': csrf || '',
                 },
                 body: JSON.stringify({
                     nome_completo: nomeCompleto,

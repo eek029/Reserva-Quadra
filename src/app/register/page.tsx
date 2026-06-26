@@ -5,6 +5,7 @@ import { ArrowLeft, Camera, Upload, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 // Google 'G' SVG inline — official brand colors
 const GoogleIcon = () => (
@@ -160,11 +161,13 @@ export default function RegisterPage() {
 
             // Gravar na API — autenticar com token da sessão recém-criada
             const sessionToken = data.session?.access_token || '';
+            const csrf = getCsrfToken();
             const response = await fetch(`/api/usuarios?auth_id=${data.user.id}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${sessionToken}`,
+                    'x-csrf-token': csrf || '',
                 },
                 body: JSON.stringify({
                     nome_completo: nomeCompleto,
