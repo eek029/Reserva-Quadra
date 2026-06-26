@@ -193,7 +193,8 @@ export default function PorteiroAgendaHoje() {
 
             const csrf = await getCsrfToken();
             if (!csrf) return;
-            const payload = { acao, ocorrencia_texto: ocorrencia || null };
+            const payload: { acao: string; ocorrencia_texto?: string } = { acao };
+            if (ocorrencia) payload.ocorrencia_texto = ocorrencia;
             const response = await fetch(`/api/reservas/${res.id}/chave`, {
                 method: 'PATCH',
                 headers: {
