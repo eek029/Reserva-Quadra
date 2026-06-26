@@ -73,11 +73,11 @@ export function rateLimitKey(request: Request, prefix: string): string {
   return `${prefix}:${getClientIp(request)}`
 }
 
-export function createRateLimiter(config: RateLimitConfig) {
+export function createRateLimiter(config: RateLimitConfig, prefix?: string) {
   return {
     check(request: Request): NextResponse | null {
-      const ip = getClientIp(request)
-      const entry = check(ip, config)
+      const key = prefix ? `${prefix}:${getClientIp(request)}` : getClientIp(request)
+      const entry = check(key, config)
       return rateLimitResponse(entry, config)
     },
     checkWithKey(key: string): NextResponse | null {

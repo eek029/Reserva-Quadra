@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
+const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 60 }, 'reservas-validate');
 
 export async function POST(request: NextRequest) {
   try {

@@ -8,8 +8,8 @@ import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 60 });
-const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
+const normalLimiter = createRateLimiter({ windowMs: 60_000, max: 60 }, 'bloqueios');
+const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 30 }, 'bloqueios-create');
 const ADMIN_ROLES = ['Síndico Geral', 'SysAdmin'];
 
 function getToken(request: NextRequest) {

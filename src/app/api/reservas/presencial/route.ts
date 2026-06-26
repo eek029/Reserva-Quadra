@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
+const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 30 }, 'reservas-presencial');
 const PERMITIDOS = ['Porteiro', 'Subsíndico', 'Síndico Geral', 'SysAdmin'];
 
 export async function POST(request: NextRequest) {

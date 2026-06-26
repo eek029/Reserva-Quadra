@@ -9,7 +9,7 @@ import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 30 });
+const sensitiveLimiter = createRateLimiter({ windowMs: 60_000, max: 30 }, 'reserva-id');
 
 export async function PATCH(
   request: NextRequest,
