@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { getCsrfToken } from '@/lib/csrf-client';
 import AdminApprovalPanel from '@/components/AdminApprovalPanel';
 import ProfileReviewPanel from '@/components/ProfileReviewPanel';
 import AdminNotificationPanel from '@/components/AdminNotificationPanel';
@@ -189,9 +190,15 @@ function BloqueioModal({
                 .filter(s => selectedSlots.includes(s.id))
                 .map(s => ({ hora_inicio: s.hora_inicio + ':00', hora_fim: s.hora_fim + ':00' }));
 
+            const csrf = getCsrfToken();
             const res = await fetch('/api/bloqueios', {
                 method: 'POST',
-                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', 'X-Refresh-Token': refreshToken },
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'X-Refresh-Token': refreshToken,
+                    'x-csrf-token': csrf || '',
+                },
                 body: JSON.stringify({ data: dateStr, slots: slotsPayload, motivo }),
             });
 
@@ -415,12 +422,14 @@ export default function DashboardPage() {
 
     const handleCancelReserva = async (reservaId: string, motivo: string) => {
         try {
+            const csrf = getCsrfToken();
             const res = await fetch(`/api/reservas/${reservaId}`, {
                 method: 'PATCH',
                 headers: {
                     Authorization: `Bearer ${sessionToken}`,
                     'Content-Type': 'application/json',
                     'X-Refresh-Token': refreshToken,
+                    'x-csrf-token': csrf || '',
                 },
                 body: JSON.stringify({ motivo_cancelamento: motivo }),
             });
@@ -453,12 +462,14 @@ export default function DashboardPage() {
         e.preventDefault();
         if (!selectedSlot || !currentUser) return;
 
+        const csrf = getCsrfToken();
         const res = await fetch('/api/reservas', {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${sessionToken}`,
                 'Content-Type': 'application/json',
                 'X-Refresh-Token': refreshToken,
+                'x-csrf-token': csrf || '',
             },
             body: JSON.stringify({
                 data_reserva: dateStr,
