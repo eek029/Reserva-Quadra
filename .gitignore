@@ -40,3 +40,5 @@ next-env.d.ts
 .venv/
 __pycache__/
 *.pyc
+*.yml
+.playwright-mcp/
