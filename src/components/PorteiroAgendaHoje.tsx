@@ -206,7 +206,7 @@ export default function PorteiroAgendaHoje() {
             });
 
             if (response.ok) {
-                alert(`Chave registrada como ${acao === 'entregar' ? 'Entregue' : 'Recebida'}!`);
+                alert(`Chave ${acao === 'entregar' ? 'entregue' : 'recebida'} com sucesso!`);
                 setOcorrencia('');
                 setIsDevolucaoModalOpen(false);
                 setReservaSelecionada(null);

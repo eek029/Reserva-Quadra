@@ -154,9 +154,29 @@ export async function registrarChave(supabase: SupabaseClient, id: string, body:
   }
 
   const { data, error } = await supabase
-    .from('reservas').update(updatePayload).eq('id', id).select().maybeSingle()
+    .from('reservas').update(updatePayload).eq('id', id).select('id, usuario_id, data_reserva, hora_inicio, hora_fim, status_chave').maybeSingle()
 
   if (error || !data) throw new NotFoundError('Reserva não encontrada.')
+
+  // Notify the reservation owner
+  const dataFormatada = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+  const horaFormatada = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' })
+  const notifMsg = acao === 'entregar'
+    ? `Sua chave foi retirada na portaria em ${dataFormatada} às ${horaFormatada}.`
+    : `Sua chave foi devolvida na portaria em ${dataFormatada} às ${horaFormatada}.${ocorrencia_texto ? ` Ocorrência registrada: ${ocorrencia_texto}` : ''}`
+
+  await supabase.from('notificacoes').insert({
+    mensagem: notifMsg,
+    destinatario_id: data.usuario_id,
+  })
+
+  // Audit log
+  await supabase.from('audit_logs').insert({
+    perfil_id: requesterId,
+    acao: `${acao}_chave`,
+    detalhes: { reserva_id: id, usuario_id: data.usuario_id, horario: novaTimestamp, ocorrencia: ocorrencia_texto || null },
+  })
+
   return data
 }
 
