@@ -13,7 +13,7 @@ export class ConflictError extends AppError { constructor(m: string) { super(m, 
 export async function listarReservas(supabase: SupabaseClient, data?: string, callerId?: string, callerCargo?: string) {
   let query = supabase
     .from('reservas')
-    .select(`*, usuarios!usuario_id(nome_completo, foto_url, torre, apartamento, cargo), observacao, telefone_contato`)
+    .select(`*, usuarios!usuario_id(nome_completo, foto_url, torre, apartamento, cargo), porteiro_entrega:entregue_por(nome_completo), porteiro_recebimento:recebida_por(nome_completo), observacao, telefone_contato`)
     .eq('status', 'ativa')
 
   if (data) query = query.eq('data_reserva', data)

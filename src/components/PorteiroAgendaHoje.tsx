@@ -1,11 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { CheckCircle2, ShieldAlert, Key, Plus, X, UserCheck } from 'lucide-react';
+import { CheckCircle2, ShieldAlert, Key, Plus, X, UserCheck, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { getCsrfToken } from '@/lib/csrf-client';
-
-// ─── Types ──────────────────────────────────────────────────────────────────
 
 interface Reserva {
     id: string;
@@ -17,12 +15,18 @@ interface Reserva {
     status_chave: string;
     observacao?: string;
     telefone_contato?: string;
+    created_at?: string;
+    retirada_em?: string;
+    devolvida_em?: string;
+    ocorrencia_texto?: string;
     usuarios: {
         nome_completo: string;
         torre: string;
         apartamento: string;
         foto_url?: string;
     };
+    porteiro_entrega?: { nome_completo: string } | null;
+    porteiro_recebimento?: { nome_completo: string } | null;
 }
 
 interface Bloqueio {
@@ -33,14 +37,11 @@ interface Bloqueio {
     motivo: string;
 }
 
-
 interface Slot {
     hora_inicio: string;
     hora_fim: string;
     label: string;
 }
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
 
 const ALL_SLOTS: Slot[] = Array.from({ length: 13 }, (_, i) => {
     const h = i + 9;
@@ -57,7 +58,43 @@ function getTodayBRT(): string {
     ).toISOString().split('T')[0];
 }
 
-// ─── Component ──────────────────────────────────────────────────────────────
+function fmtTime(iso?: string): string {
+    if (!iso) return '';
+    return new Date(iso).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+}
+
+function fmtDateTime(iso?: string): string {
+    if (!iso) return '';
+    return new Date(iso).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+interface TimelineEvent {
+    icon: string;
+    time: string;
+    label: string;
+    color: string;
+}
+
+function buildTimeline(res: Reserva): TimelineEvent[] {
+    const events: TimelineEvent[] = [];
+
+    if (res.created_at && res.status !== 'cancelada') {
+        events.push({ icon: '📋', time: fmtDateTime(res.created_at), label: 'Reserva criada', color: 'text-violet-600' });
+    }
+    if (res.retirada_em) {
+        const nome = res.porteiro_entrega?.nome_completo;
+        events.push({ icon: '🔑', time: fmtDateTime(res.retirada_em), label: `Chave entregue${nome ? ` por ${nome}` : ''}`, color: 'text-amber-600' });
+    }
+    if (res.devolvida_em) {
+        const nome = res.porteiro_recebimento?.nome_completo;
+        events.push({ icon: '✅', time: fmtDateTime(res.devolvida_em), label: `Chave devolvida${nome ? ` por ${nome}` : ''}`, color: 'text-teal-600' });
+        if (res.ocorrencia_texto) {
+            events.push({ icon: '⚠️', time: '', label: `Ocorrência: ${res.ocorrencia_texto}`, color: 'text-red-600' });
+        }
+    }
+
+    return events;
+}
 
 export default function PorteiroAgendaHoje() {
     const [reservasHoje, setReservasHoje] = useState<Reserva[]>([]);
@@ -67,8 +104,8 @@ export default function PorteiroAgendaHoje() {
     const [isDevolucaoModalOpen, setIsDevolucaoModalOpen] = useState(false);
     const [reservaSelecionada, setReservaSelecionada] = useState<Reserva | null>(null);
     const [sessionUserId, setSessionUserId] = useState<string | null>(null);
+    const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    // ── Modal: Reserva Presencial ────────────────────────────────────────────
     const [isPresencialOpen, setIsPresencialOpen] = useState(false);
     const [observacaoPresencial, setObservacaoPresencial] = useState('');
     const [telefonePresencial, setTelefonePresencial] = useState('');
@@ -76,14 +113,12 @@ export default function PorteiroAgendaHoje() {
     const [freeSlots, setFreeSlots] = useState<Slot[]>([]);
     const [isSavingPresencial, setIsSavingPresencial] = useState(false);
 
-    // ── Fetch session ────────────────────────────────────────────────────────
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) setSessionUserId(session.user.id);
         });
     }, []);
 
-    // ── Fetch today's reservas ───────────────────────────────────────────────
     const fetchReservasHoje = useCallback(async () => {
         setIsLoading(true);
         const dateStr = getTodayBRT();
@@ -110,14 +145,34 @@ export default function PorteiroAgendaHoje() {
 
     useEffect(() => { fetchReservasHoje(); }, [fetchReservasHoje]);
 
-    // ── Open Presencial Modal ────────────────────────────────────────────────
+    // Realtime: atualizar prancheta automaticamente
+    const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) return;
+            channelRef.current = supabase
+                .channel('prancheta-realtime')
+                .on('postgres_changes',
+                    { event: 'INSERT', schema: 'public', table: 'reservas' },
+                    () => { fetchReservasHoje(); }
+                )
+                .on('postgres_changes',
+                    { event: 'UPDATE', schema: 'public', table: 'reservas' },
+                    () => { fetchReservasHoje(); }
+                )
+                .subscribe();
+        });
+        return () => {
+            if (channelRef.current) supabase.removeChannel(channelRef.current);
+        };
+    }, [fetchReservasHoje]);
+
     const openPresencialModal = async () => {
         setIsPresencialOpen(true);
         setObservacaoPresencial('');
         setTelefonePresencial('');
         setSelectedSlot('');
 
-        // Compute free slots for today (reservas + bloqueios)
         const dateStr = getTodayBRT();
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
@@ -140,7 +195,6 @@ export default function PorteiroAgendaHoje() {
         setFreeSlots(livres);
     };
 
-    // ── Submit Presencial ────────────────────────────────────────────────────
     const handleConfirmarPresencial = async () => {
         if (!observacaoPresencial.trim() || !telefonePresencial.trim() || !selectedSlot || !sessionUserId) return;
         setIsSavingPresencial(true);
@@ -185,7 +239,6 @@ export default function PorteiroAgendaHoje() {
         }
     };
 
-    // ── Key operations ───────────────────────────────────────────────────────
     const processarChave = async (res: Reserva, acao: 'entregar' | 'receber') => {
         try {
             const { data: { session } } = await supabase.auth.getSession();
@@ -220,12 +273,14 @@ export default function PorteiroAgendaHoje() {
         }
     };
 
-    // ── Render ───────────────────────────────────────────────────────────────
+    const toggleTimeline = (id: string) => {
+        setExpandedId(prev => prev === id ? null : id);
+    };
+
     if (isLoading) return <div className="text-center p-8 text-gray-500">Carregando Prancheta...</div>;
 
     return (
         <div className="w-full">
-            {/* Header */}
             <div className="mb-6 flex items-center justify-between">
                 <div>
                     <h2 className="text-xl font-bold text-gray-800">Prancheta Operacional</h2>
@@ -239,7 +294,6 @@ export default function PorteiroAgendaHoje() {
                 </button>
             </div>
 
-            {/* Bloqueios list */}
             {bloqueiosHoje.length > 0 && (
                 <div className="mb-6">
                     <h3 className="text-sm font-semibold text-amber-700 mb-2 uppercase tracking-wide flex items-center gap-1.5">
@@ -261,93 +315,123 @@ export default function PorteiroAgendaHoje() {
                 </div>
             )}
 
-            {/* Reservation list */}
             {reservasHoje.length === 0 ? (
                 <div className="bg-white rounded-xl border border-gray-100 p-8 text-center shadow-sm">
                     <p className="text-gray-500 font-medium">Nenhuma reserva confirmada para hoje.</p>
                 </div>
             ) : (
                 <div className="grid gap-4">
-                    {reservasHoje.map((res) => (
-                        <div key={res.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col md:flex-row">
-                            <div className="p-4 flex items-center gap-4 md:w-1/3 border-b md:border-b-0 md:border-r border-gray-100 bg-gray-50">
-                                <div className="w-14 h-14 rounded-full bg-gray-300 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
-                                    {res.usuarios?.foto_url ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={res.usuarios.foto_url} alt="Morador" className="w-full h-full object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-500 text-xl font-bold">
-                                            {res.usuarios?.nome_completo?.charAt(0) || '?'}
-                                        </div>
-                                    )}
-                                </div>
-                                <div>
-                                    {res.observacao ? (
-                                        <>
-                                            <p className="font-bold text-gray-900 leading-tight">{res.observacao}</p>
-                                            <p className="text-xs text-amber-600 font-semibold mt-0.5">
-                                                Presencial
-                                            </p>
-                                            {res.telefone_contato && (
-                                                <p className="text-xs text-gray-500 mt-0.5">
-                                                    Tel: {res.telefone_contato}
-                                                </p>
+                    {reservasHoje.map((res) => {
+                        const timeline = buildTimeline(res);
+                        const isExpanded = expandedId === res.id;
+                        return (
+                            <div key={res.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                                <div className="flex flex-col md:flex-row">
+                                    <div className="p-4 flex items-center gap-4 md:w-1/3 border-b md:border-b-0 md:border-r border-gray-100 bg-gray-50">
+                                        <div className="w-14 h-14 rounded-full bg-gray-300 border-2 border-white shadow-sm overflow-hidden flex-shrink-0">
+                                            {res.usuarios?.foto_url ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img src={res.usuarios.foto_url} alt="Morador" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-500 text-xl font-bold">
+                                                    {res.usuarios?.nome_completo?.charAt(0) || '?'}
+                                                </div>
                                             )}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <p className="font-bold text-gray-900 leading-tight">{res.usuarios?.nome_completo}</p>
-                                            <p className="text-xs font-semibold text-violet-700 bg-violet-100 inline-block px-2 py-0.5 rounded-full mt-1">
-                                                Torre {res.usuarios?.torre} - Apto {res.usuarios?.apartamento}
-                                            </p>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="p-4 flex-1 flex flex-col justify-center">
-                                <div className="flex items-center justify-between mb-2">
-                                    <span className="font-mono bg-gray-100 px-2 py-1 rounded text-gray-700 font-semibold text-sm">
-                                        {res.hora_inicio.slice(0, 5)} - {res.hora_fim.slice(0, 5)}
-                                    </span>
-                                    <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${res.status_chave === 'em_uso' ? 'bg-amber-100 text-amber-700' :
-                                        res.status_chave === 'concluida' ? 'bg-green-100 text-green-700' :
-                                            'bg-gray-100 text-gray-600'
-                                        }`}>
-                                        {res.status_chave.replace('_', ' ')}
-                                    </span>
-                                </div>
-
-                                <div className="flex gap-2 mt-2">
-                                    {res.status_chave === 'aguardando' && (
-                                        <button
-                                            onClick={() => processarChave(res, 'entregar')}
-                                            className="flex-1 bg-violet-600 hover:bg-violet-700 text-white py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors"
-                                        >
-                                            <Key className="w-4 h-4" /> Entregar Chave
-                                        </button>
-                                    )}
-                                    {res.status_chave === 'em_uso' && (
-                                        <button
-                                            onClick={() => { setReservaSelecionada(res); setIsDevolucaoModalOpen(true); }}
-                                            className="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors"
-                                        >
-                                            <CheckCircle2 className="w-4 h-4" /> Receber Chave
-                                        </button>
-                                    )}
-                                    {res.status_chave === 'concluida' && (
-                                        <div className="flex-1 bg-gray-50 text-gray-400 py-2 rounded-lg font-semibold text-sm flex items-center justify-center border border-gray-100">
-                                            Turno Concluído
                                         </div>
-                                    )}
+                                        <div>
+                                            {res.observacao ? (
+                                                <>
+                                                    <p className="font-bold text-gray-900 leading-tight">{res.observacao}</p>
+                                                    <p className="text-xs text-amber-600 font-semibold mt-0.5">Presencial</p>
+                                                    {res.telefone_contato && (
+                                                        <p className="text-xs text-gray-500 mt-0.5">Tel: {res.telefone_contato}</p>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <p className="font-bold text-gray-900 leading-tight">{res.usuarios?.nome_completo}</p>
+                                                    <p className="text-xs font-semibold text-violet-700 bg-violet-100 inline-block px-2 py-0.5 rounded-full mt-1">
+                                                        Torre {res.usuarios?.torre} - Apto {res.usuarios?.apartamento}
+                                                    </p>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 flex-1 flex flex-col justify-center">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="font-mono bg-gray-100 px-2 py-1 rounded text-gray-700 font-semibold text-sm">
+                                                {res.hora_inicio.slice(0, 5)} - {res.hora_fim.slice(0, 5)}
+                                            </span>
+                                            <span className={`text-xs font-bold px-2 py-1 rounded-full uppercase ${res.status_chave === 'em_uso' ? 'bg-amber-100 text-amber-700' :
+                                                res.status_chave === 'concluida' ? 'bg-green-100 text-green-700' :
+                                                    'bg-gray-100 text-gray-600'
+                                                }`}>
+                                                {res.status_chave.replace('_', ' ')}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex gap-2 mt-2">
+                                            {res.status_chave === 'aguardando' && (
+                                                <button
+                                                    onClick={() => processarChave(res, 'entregar')}
+                                                    className="flex-1 bg-violet-600 hover:bg-violet-700 text-white py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                                                >
+                                                    <Key className="w-4 h-4" /> Entregar Chave
+                                                </button>
+                                            )}
+                                            {res.status_chave === 'em_uso' && (
+                                                <button
+                                                    onClick={() => { setReservaSelecionada(res); setIsDevolucaoModalOpen(true); }}
+                                                    className="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+                                                >
+                                                    <CheckCircle2 className="w-4 h-4" /> Receber Chave
+                                                </button>
+                                            )}
+                                            {res.status_chave === 'concluida' && (
+                                                <div className="flex-1 bg-gray-50 text-gray-400 py-2 rounded-lg font-semibold text-sm flex items-center justify-center border border-gray-100">
+                                                    Turno Concluído
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
+
+                                {/* Timeline toggle */}
+                                <button
+                                    onClick={() => toggleTimeline(res.id)}
+                                    className="w-full flex items-center justify-between px-4 py-2 text-xs font-medium text-gray-500 hover:bg-gray-50 border-t border-gray-100 transition-colors"
+                                >
+                                    <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Timeline</span>
+                                    {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+
+                                {isExpanded && timeline.length > 0 && (
+                                    <div className="border-t border-gray-100 bg-gray-50/50 px-4 py-3">
+                                        <div className="relative pl-6 space-y-3">
+                                            {/* Vertical line */}
+                                            <div className="absolute left-[9px] top-1 bottom-1 w-0.5 bg-gray-200" />
+                                            {timeline.map((event, idx) => (
+                                                <div key={idx} className="relative flex items-start gap-3">
+                                                    <div className="absolute -left-[18px] top-0 text-xs">{event.icon}</div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`text-xs font-medium ${event.color}`}>{event.label}</p>
+                                                        {event.time && (
+                                                            <p className="text-[10px] text-gray-400 mt-0.5">{event.time}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
-            {/* ── Modal: Nova Reserva Presencial ─────────────────────────────────── */}
+            {/* Modal: Nova Reserva Presencial */}
             {isPresencialOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 px-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
@@ -363,7 +447,6 @@ export default function PorteiroAgendaHoje() {
                             Registre uma reserva em nome de um morador que está presente na portaria.
                         </p>
 
-                        {/* Morador: texto livre */}
                         <div className="mb-4">
                             <label className="block text-sm font-semibold text-gray-700 mb-1">
                                 Nome e Apto do Morador <span className="font-normal text-gray-400">(Registro Manual)</span>
@@ -377,7 +460,6 @@ export default function PorteiroAgendaHoje() {
                             />
                         </div>
 
-                        {/* Telefone de contato */}
                         <div className="mb-4">
                             <label className="block text-sm font-semibold text-gray-700 mb-1">
                                 Telefone de Contato <span className="text-red-500">*</span>
@@ -391,7 +473,6 @@ export default function PorteiroAgendaHoje() {
                             />
                         </div>
 
-                        {/* Slot selector */}
                         <div className="mb-6">
                             <label className="block text-sm font-semibold text-gray-700 mb-1">Horário Disponível</label>
                             {freeSlots.length === 0 ? (
@@ -436,7 +517,7 @@ export default function PorteiroAgendaHoje() {
                 </div>
             )}
 
-            {/* ── Modal: Registrar Devolução ──────────────────────────────────────── */}
+            {/* Modal: Registrar Devolução */}
             {isDevolucaoModalOpen && reservaSelecionada && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 px-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
