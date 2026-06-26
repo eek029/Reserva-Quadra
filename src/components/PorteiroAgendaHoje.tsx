@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CheckCircle2, ShieldAlert, Key, Plus, X, UserCheck } from 'lucide-react';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -87,22 +88,19 @@ export default function PorteiroAgendaHoje() {
         setIsLoading(true);
         const dateStr = getTodayBRT();
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) throw new Error('Sessão não encontrada');
+
+            const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
             const [resReservas, resBloqueios] = await Promise.all([
-                supabase
-                    .from('reservas')
-                    .select('*, usuarios:usuario_id (nome_completo, torre, apartamento, foto_url)')
-                    .eq('data_reserva', dateStr)
-                    .eq('status', 'ativa')
-                    .order('hora_inicio', { ascending: true }),
-                supabase
-                    .from('bloqueios')
-                    .select('*')
-                    .eq('data', dateStr)
-                    .order('hora_inicio', { ascending: true }),
+                fetch(`/api/reservas?data=${dateStr}`, { headers }),
+                fetch(`/api/bloqueios?data=${dateStr}`, { headers }),
             ]);
-            if (resReservas.error) throw resReservas.error;
-            setReservasHoje(resReservas.data || []);
-            setBloqueiosHoje(resBloqueios.data || []);
+            if (!resReservas.ok) throw new Error('Erro ao carregar reservas');
+            if (!resBloqueios.ok) throw new Error('Erro ao carregar bloqueios');
+            setReservasHoje(await resReservas.json() || []);
+            setBloqueiosHoje(await resBloqueios.json() || []);
         } catch (error) {
             console.error('Erro ao buscar dados de hoje:', error);
         } finally {
@@ -121,21 +119,19 @@ export default function PorteiroAgendaHoje() {
 
         // Compute free slots for today (reservas + bloqueios)
         const dateStr = getTodayBRT();
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) return;
+
+        const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
         const [resOcupadas, resBloqueios] = await Promise.all([
-            supabase
-                .from('reservas')
-                .select('hora_inicio, hora_fim')
-                .eq('data_reserva', dateStr)
-                .eq('status', 'ativa'),
-            supabase
-                .from('bloqueios')
-                .select('hora_inicio, hora_fim')
-                .eq('data', dateStr),
+            fetch(`/api/reservas?data=${dateStr}`, { headers }),
+            fetch(`/api/bloqueios?data=${dateStr}`, { headers }),
         ]);
 
         const ocupadas = [
-            ...(resOcupadas.data || []),
-            ...(resBloqueios.data || []),
+            ...(resOcupadas.ok ? await resOcupadas.json() : []),
+            ...(resBloqueios.ok ? await resBloqueios.json() : []),
         ];
 
         const livres = ALL_SLOTS.filter(slot =>
@@ -153,10 +149,18 @@ export default function PorteiroAgendaHoje() {
         if (!slot) { setIsSavingPresencial(false); return; }
 
         try {
+            const csrf = await getCsrfToken();
+            if (!csrf) { setIsSavingPresencial(false); return; }
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            if (!token) { setIsSavingPresencial(false); return; }
+
             const res = await fetch('/api/reservas/presencial', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'x-csrf-token': csrf,
                 },
                 body: JSON.stringify({
                     observacao: observacaoPresencial.trim(),
@@ -187,10 +191,16 @@ export default function PorteiroAgendaHoje() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
+            const csrf = await getCsrfToken();
+            if (!csrf) return;
             const payload = { acao, ocorrencia_texto: ocorrencia || null };
             const response = await fetch(`/api/reservas/${res.id}/chave`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                    'x-csrf-token': csrf,
+                },
                 body: JSON.stringify(payload),
             });
 

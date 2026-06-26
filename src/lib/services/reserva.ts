@@ -31,6 +31,8 @@ export async function criarReserva(supabase: SupabaseClient, body: unknown) {
   if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
   const { data_reserva, hora_inicio, hora_fim, aceite_termos, usuario_id } = parsed.data
 
+  await validarReserva(supabase, { usuario_id, data_reserva, hora_inicio, hora_fim })
+
   const { data: existente } = await supabase
     .from('reservas').select('id')
     .eq('data_reserva', data_reserva).eq('hora_inicio', hora_inicio).eq('status', 'ativa')
@@ -165,6 +167,8 @@ export async function criarReservaPresencial(supabase: SupabaseClient, body: unk
 
   const brtDate = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
   const data_reserva = new Date(brtDate).toISOString().split('T')[0]
+
+  await validarReserva(supabase, { usuario_id: requesterId, data_reserva, hora_inicio, hora_fim })
 
   const { data: conflitosReserva } = await supabase
     .from('reservas').select('hora_inicio, hora_fim')
