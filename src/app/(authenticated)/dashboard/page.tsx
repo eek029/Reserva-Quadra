@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Calendar as CalendarIcon, List, ChevronLeft, ChevronRight,
-    Users, XCircle, CloudRain, Wrench, Loader2, X, Lock, Unlock
+    Users, XCircle, CloudRain, Wrench, Loader2, X, Lock, Unlock, History
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -513,6 +513,7 @@ export default function DashboardPage() {
                         currentUserTorre={currentUser.torre!}
                     />
                     {isAdmin && (
+                        <>
                         <Link
                             href="/dashboard/usuarios"
                             className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4 hover:border-violet-300 hover:shadow-md transition-all group"
@@ -530,6 +531,24 @@ export default function DashboardPage() {
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-violet-400 transition-colors" />
                         </Link>
+                        <Link
+                            href="/dashboard/historico"
+                            className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4 hover:border-emerald-300 hover:shadow-md transition-all group"
+                        >
+                            <div className="p-3 bg-emerald-50 rounded-xl group-hover:bg-emerald-100 transition-colors">
+                                <History className="w-6 h-6 text-emerald-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h2 className="text-sm font-semibold text-gray-700 group-hover:text-emerald-700 transition-colors">
+                                    Histórico de Reservas
+                                </h2>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    Visualizar reservas passadas e cancelamentos
+                                </p>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-400 transition-colors" />
+                        </Link>
+                        </>
                     )}
                 </div>
             )}

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { criarReservaSchema, cancelarReservaSchema, chaveSchema, validateReservaSchema, reservaPresencialSchema } from '@/lib/validators'
+import { criarReservaSchema, cancelarReservaSchema, chaveSchema, validateReservaSchema, reservaPresencialSchema, historicoQuerySchema } from '@/lib/validators'
 
 export class AppError extends Error {
   status: number
@@ -47,7 +47,7 @@ export async function criarReserva(supabase: SupabaseClient, body: unknown) {
   return data
 }
 
-export async function cancelarReserva(supabase: SupabaseClient, id: string, body: unknown) {
+export async function cancelarReserva(supabase: SupabaseClient, id: string, body: unknown, canceladoPor?: string) {
   const parsed = cancelarReservaSchema.safeParse(body)
   if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
 
@@ -62,7 +62,7 @@ export async function cancelarReserva(supabase: SupabaseClient, id: string, body
 
   const { error } = await supabase
     .from('reservas')
-    .update({ status: 'cancelada', motivo_cancelamento: parsed.data.motivo_cancelamento })
+    .update({ status: 'cancelada', motivo_cancelamento: parsed.data.motivo_cancelamento, cancelado_por: canceladoPor })
     .eq('id', id)
 
   if (error) throw new AppError(error.message, 500)
@@ -78,6 +78,58 @@ export async function cancelarReserva(supabase: SupabaseClient, id: string, body
 
     if (notifError) console.error('[notificacao] erro ao inserir:', notifError.message)
   }
+}
+
+export async function listarHistoricoReservas(
+  supabase: SupabaseClient,
+  callerId: string,
+  callerCargo: string,
+  callerTorre: string | undefined,
+  filters: unknown
+) {
+  if (!['SysAdmin', 'Síndico Geral', 'Subsíndico'].includes(callerCargo))
+    throw new ForbiddenError('Acesso negado.')
+
+  const parsed = historicoQuerySchema.safeParse(filters)
+  if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
+  const { inicio, fim, status, morador, page, pageSize } = parsed.data
+
+  const seisMesesAtras = new Date()
+  seisMesesAtras.setMonth(seisMesesAtras.getMonth() - 6)
+  const dataInicio = inicio ?? seisMesesAtras.toISOString().split('T')[0]
+  const dataFim = fim ?? new Date().toISOString().split('T')[0]
+
+  let query = supabase
+    .from('reservas')
+    .select(`*,
+      usuarios!usuario_id(nome_completo, foto_url, torre, apartamento),
+      cancelado_por!cancelado_por(nome_completo, torre, apartamento)
+    `, { count: 'exact' })
+    .gte('data_reserva', dataInicio)
+    .lte('data_reserva', dataFim)
+    .order('data_reserva', { ascending: false })
+    .order('hora_inicio', { ascending: false })
+    .range((page - 1) * pageSize, page * pageSize - 1)
+
+  if (status !== 'todas') query = query.eq('status', status)
+  if (callerCargo === 'Subsíndico' && callerTorre) {
+    const { data: torreUserIds } = await supabase
+      .from('usuarios').select('id').eq('torre', callerTorre)
+    const ids = torreUserIds?.map(u => u.id) ?? []
+    query = query.in('usuario_id', ids)
+  }
+  if (morador) {
+    const { data: matchingUsers } = await supabase
+      .from('usuarios').select('id').ilike('nome_completo', `%${morador}%`)
+    const ids = matchingUsers?.map(u => u.id) ?? []
+    if (ids.length === 0) return { data: [], total: 0, page }
+    query = query.in('usuario_id', ids)
+  }
+
+  const { data, error, count } = await query
+  if (error) throw new AppError(error.message, 500)
+
+  return { data: data ?? [], total: count ?? 0, page }
 }
 
 export async function registrarChave(supabase: SupabaseClient, id: string, body: unknown, requesterId: string) {

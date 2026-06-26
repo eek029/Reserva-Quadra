@@ -41,7 +41,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    await cancelarReserva(supabase, id, body);
+    await cancelarReserva(supabase, id, body, user.id);
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });

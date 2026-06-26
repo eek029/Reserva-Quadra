@@ -68,3 +68,12 @@ export const validateReservaSchema = z.object({
   hora_inicio: z.string().regex(timeRegex, 'Formato deve ser HH:MM'),
   hora_fim: z.string().regex(timeRegex, 'Formato deve ser HH:MM'),
 })
+
+export const historicoQuerySchema = z.object({
+  inicio: z.string().regex(dateRegex, 'Formato deve ser YYYY-MM-DD').optional(),
+  fim: z.string().regex(dateRegex, 'Formato deve ser YYYY-MM-DD').optional(),
+  status: z.enum(['ativa', 'cancelada', 'todas']).optional().default('todas'),
+  morador: z.string().max(100).optional(),
+  page: z.coerce.number().int().min(1).optional().default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).optional().default(20),
+})
