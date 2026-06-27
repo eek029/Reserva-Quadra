@@ -7,15 +7,21 @@ Sistema de agendamento da quadra poliesportiva do **Complexo Júlio Prestes**.
 ## Sumário
 
 1. [Acessando o Sistema](#1-acessando-o-sistema)
-2. [Morador — Como Reservar a Quadra](#2-morador--como-reservar-a-quadra)
-3. [Morador — Minhas Reservas e Cancelamento](#3-morador--minhas-reservas-e-cancelamento)
-4. [Síndico / Subsíndico — Painel de Gestão](#4-sindico--subsindico--painel-de-gestao)
-5. [Porteiro — Prancheta Operacional](#5-porteiro--prancheta-operacional)
-6. [Porteiro — Controle de Chaves](#6-porteiro--controle-de-chaves)
-7. [Porteiro — Reserva Presencial](#7-porteiro--reserva-presencial)
-8. [Porteiro — Mural e Comunicação](#8-porteiro--mural-e-comunicacao)
-9. [Fluxos Rápidos](#9-fluxos-rapidos)
-10. [Perguntas Frequentes](#10-perguntas-frequentes)
+2. [Morador](#2-morador)
+   - 2.1 [Como Reservar a Quadra](#21-como-reservar-a-quadra)
+   - 2.2 [Minhas Reservas e Cancelamento](#22-minhas-reservas-e-cancelamento)
+3. [Síndico / Subsíndico](#3-sindico--subsindico)
+   - 3.1 [Painel de Gestão](#31-painel-de-gestao)
+   - 3.2 [Aprovação de Cadastros](#32-aprovacao-de-cadastros)
+   - 3.3 [Histórico de Reservas](#33-historico-de-reservas)
+   - 3.4 [Mural de Comunicação](#34-mural-de-comunicacao)
+4. [Porteiro](#4-porteiro)
+   - 4.1 [Prancheta Operacional](#41-prancheta-operacional)
+   - 4.2 [Controle de Chaves](#42-controle-de-chaves)
+   - 4.3 [Reserva Presencial](#43-reserva-presencial)
+   - 4.4 [Mural e Comunicação](#44-mural-e-comunicacao)
+5. [Fluxos Rápidos](#5-fluxos-rapidos)
+6. [Perguntas Frequentes](#6-perguntas-frequentes)
 
 ---
 
@@ -51,9 +57,11 @@ https://reserva-quadra.vercel.app
 
 ---
 
-## 2. Morador — Como Reservar a Quadra
+## 2. Morador
 
-### Regras
+### 2.1 Como Reservar a Quadra
+
+#### Regras
 
 | Regra | Detalhe |
 |-------|---------|
@@ -63,7 +71,7 @@ https://reserva-quadra.vercel.app
 | Antecedência | Pode reservar para qualquer dia futuro |
 | Termos de uso | Obrigatório aceitar a cada reserva |
 
-### Passo a Passo
+#### Passo a Passo
 
 1. Faça login no sistema
 2. Você vê o **Quadro de Reservas** (calendário mensal)
@@ -78,7 +86,7 @@ https://reserva-quadra.vercel.app
    - Clique em "Confirmar Reserva"
 6. Pronto! A reserva aparece no calendário e em "Minhas Reservas"
 
-### Acompanhamento no Dia
+#### Acompanhamento no Dia
 
 No dia da sua reserva:
 - O porteiro vê seu nome na prancheta
@@ -87,17 +95,15 @@ No dia da sua reserva:
 - Use a quadra pelo período reservado
 - Devolva a chave na portaria ao terminar
 
----
+### 2.2 Minhas Reservas e Cancelamento
 
-## 3. Morador — Minhas Reservas e Cancelamento
-
-### Minhas Reservas
+#### Minhas Reservas
 
 Acesse a aba **"Reservas"** no menu inferior para ver:
 - **Reservas Ativas:** horários futuros que você agendou
 - **Reservas Canceladas:** reservas que você cancelou
 
-### Cancelar uma Reserva
+#### Cancelar uma Reserva
 
 1. Vá em **"Reservas"** > **"Ativas"**
 2. Clique em **"Cancelar"** na reserva desejada
@@ -108,7 +114,9 @@ Acesse a aba **"Reservas"** no menu inferior para ver:
 
 ---
 
-## 4. Síndico / Subsíndico — Painel de Gestão
+## 3. Síndico / Subsíndico
+
+### 3.1 Painel de Gestão
 
 Síndicos e subsíndicos têm acesso a funcionalidades administrativas no menu:
 - **Reservas** — quadro geral
@@ -118,7 +126,7 @@ Síndicos e subsíndicos têm acesso a funcionalidades administrativas no menu:
 - **Auditoria** (apenas Síndico Geral) — log de todas as ações
 - **Histórico** — consulta de reservas passadas
 
-### Aprovação de Cadastros
+### 3.2 Aprovação de Cadastros
 
 Quando um novo morador se cadastra:
 1. Uma notificação aparece no painel do síndico
@@ -127,7 +135,7 @@ Quando um novo morador se cadastra:
 4. Escolha **"Aprovar"** ou **"Rejeitar"**
 5. O morador recebe uma notificação com o resultado
 
-### Histórico de Reservas
+### 3.3 Histórico de Reservas
 
 1. Vá em **"Histórico"**
 2. Use os filtros para buscar:
@@ -140,7 +148,7 @@ Quando um novo morador se cadastra:
    - Ocorrência registrada na devolução
    - Motivo de cancelamento (se aplicável)
 
-### Mural de Comunicação (Broadcast)
+### 3.4 Mural de Comunicação
 
 1. No painel, vá até a seção **"Mural e Comunicação"**
 2. Escolha o destinatário:
@@ -152,9 +160,11 @@ Quando um novo morador se cadastra:
 
 ---
 
-## 5. Porteiro — Prancheta Operacional
+## 4. Porteiro
 
-### Visão Geral
+### 4.1 Prancheta Operacional
+
+#### Visão Geral
 
 A **Prancheta Operacional** é a tela principal do porteiro. Ela mostra:
 - Todas as reservas do dia atual
@@ -164,15 +174,13 @@ A **Prancheta Operacional** é a tela principal do porteiro. Ela mostra:
 - Seção de Cadastros Pendentes
 - Mural de Comunicação
 
-### Bloqueios do Dia
+#### Bloqueios do Dia
 
 Se a administração bloqueou algum horário (ex: manutenção), ele aparece destacado no topo da prancheta em amarelo.
 
----
+### 4.2 Controle de Chaves
 
-## 6. Porteiro — Controle de Chaves
-
-### Ciclo da Chave
+#### Ciclo da Chave
 
 Cada reserva passa por três estados:
 
@@ -182,14 +190,14 @@ AGUARDANDO  →  EM USO  →  CONCLUÍDA
                 retirada)  devolvida)
 ```
 
-### Entregar Chave
+#### Entregar Chave
 
 1. Na prancheta, localize o card do morador com status **"AGUARDANDO"**
 2. Clique em **"Entregar Chave"**
 3. Pronto! O status muda para **"EM USO"**
 4. O morador recebe uma notificação: "Sua chave foi retirada na portaria"
 
-### Receber Chave (Devolução)
+#### Receber Chave (Devolução)
 
 1. Localize o card com status **"EM USO"**
 2. Clique em **"Receber Chave"**
@@ -199,16 +207,14 @@ AGUARDANDO  →  EM USO  →  CONCLUÍDA
 4. Clique em **"Confirmar Devolução"**
 5. O status muda para **"CONCLUÍDA"** e o card exibe "Turno Concluído"
 
-### Timeline
+#### Timeline
 
 Clique em **"Timeline"** em qualquer card para ver o histórico de eventos daquela reserva:
 - Data/hora da criação
 - Data/hora da retirada da chave + nome do porteiro
 - Data/hora da devolução da chave + nome do porteiro + ocorrência (se houver)
 
----
-
-## 7. Porteiro — Reserva Presencial
+### 4.3 Reserva Presencial
 
 Quando um morador sem cadastro (ou que não consegue acessar o app) quer usar a quadra:
 
@@ -222,9 +228,7 @@ Quando um morador sem cadastro (ou que não consegue acessar o app) quer usar a 
 
 > A reserva presencial é vinculada ao porteiro para fins de auditoria, mas exibe o nome digitado na lista do dia e no histórico.
 
----
-
-## 8. Porteiro — Mural e Comunicação
+### 4.4 Mural e Comunicação
 
 Porteiros podem enviar notificações:
 - **"Todos os Moradores"** — comunicado geral
@@ -236,7 +240,7 @@ Porteiros podem enviar notificações:
 
 ---
 
-## 9. Fluxos Rápidos
+## 5. Fluxos Rápidos
 
 ### Fluxo Completo — Reserva Online (Morador)
 
@@ -279,7 +283,7 @@ No dia:
 
 ---
 
-## 10. Perguntas Frequentes
+## 6. Perguntas Frequentes
 
 ### Posso reservar mais de 2 horas seguidas?
 
@@ -311,4 +315,4 @@ Síndicos e subsíndicos têm acesso à página de **Histórico**, que permite f
 
 ---
 
-Documento gerado em 26/06/2026.
+Documento gerado em 27/06/2026.
