@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bell, User, ArrowLeft, BookOpen, LogOut, Loader2, X } from 'lucide-react';
+import { Bell, User, ArrowLeft, BookOpen, ShieldAlert, LogOut, Loader2, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -233,6 +233,9 @@ export default function Header() {
 
                             <Link href="/regras" className="p-2 hover:bg-violet-500 rounded-full transition-colors flex flex-col items-center" title="Regras de Utilização da Quadra">
                                 <BookOpen className="w-5 h-5" />
+                            </Link>
+                            <Link href="/privacy" className="p-2 hover:bg-violet-500 rounded-full transition-colors flex flex-col items-center" title="Privacidade LGPD">
+                                <ShieldAlert className="w-5 h-5" />
                             </Link>
                             <Link href="/profile" className="p-2 hover:bg-violet-500 rounded-full transition-colors flex flex-col items-center" title="Perfil">
                                 <User className="w-5 h-5" />

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Calendar as CalendarIcon, List, ChevronLeft, ChevronRight,
-    Users, XCircle, CloudRain, Wrench, Loader2, X, Lock, Unlock, History, Bell
+    Users, XCircle, CloudRain, Wrench, Loader2, X, Lock, Unlock, History, Bell, Trash2
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -541,6 +541,23 @@ export default function DashboardPage() {
                                 </p>
                             </div>
                             <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-violet-400 transition-colors" />
+                        </Link>
+                        <Link
+                            href="/dashboard/solicitacoes-exclusao"
+                            className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4 hover:border-rose-300 hover:shadow-md transition-all group"
+                        >
+                            <div className="p-3 bg-rose-50 rounded-xl group-hover:bg-rose-100 transition-colors">
+                                <Trash2 className="w-6 h-6 text-rose-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h2 className="text-sm font-semibold text-gray-700 group-hover:text-rose-700 transition-colors">
+                                    Exclusão de Dados (LGPD)
+                                </h2>
+                                <p className="text-xs text-gray-400 mt-0.5">
+                                    Solicitações de exclusão pendentes
+                                </p>
+                            </div>
+                            <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-rose-400 transition-colors" />
                         </Link>
                         <Link
                             href="/dashboard/historico"
