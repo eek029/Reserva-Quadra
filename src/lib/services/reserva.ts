@@ -185,7 +185,7 @@ export async function registrarChave(supabase: SupabaseClient, id: string, body:
 export async function criarReservaPresencial(supabase: SupabaseClient, body: unknown, requesterId: string) {
   const parsed = reservaPresencialSchema.safeParse(body)
   if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
-  const { observacao, telefone_contato, hora_inicio, hora_fim } = parsed.data
+  const { presencial_nome, telefone_contato, presencial_torre, presencial_apt, presencial_bloco, presencial_documento, hora_inicio, hora_fim } = parsed.data
 
   const brtDate = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' })
   const data_reserva = new Date(brtDate).toISOString().split('T')[0]
@@ -215,7 +215,7 @@ export async function criarReservaPresencial(supabase: SupabaseClient, body: unk
     .insert([{
       usuario_id: requesterId, data_reserva, hora_inicio, hora_fim,
       status: 'ativa', status_chave: 'aguardando', aceite_termos: true,
-      observacao, telefone_contato,
+      presencial_nome, telefone_contato, presencial_torre, presencial_apt, presencial_bloco, presencial_documento,
     }])
     .select().maybeSingle()
 
