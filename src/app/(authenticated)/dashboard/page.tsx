@@ -39,6 +39,10 @@ interface ReservaSlotAdmin {
     slot: Slot;
     observacao?: string;
     telefone_contato?: string;
+    presencial_nome?: string;
+    presencial_torre?: string;
+    presencial_apt?: string;
+    presencial_bloco?: string;
     usuarios: {
         nome?: string;
         nome_completo?: string;
@@ -402,6 +406,10 @@ export default function DashboardPage() {
                             slot: match,
                             observacao: (reserva.observacao as string) || undefined,
                             telefone_contato: (reserva.telefone_contato as string) || undefined,
+                            presencial_nome: (reserva.presencial_nome as string) || undefined,
+                            presencial_torre: (reserva.presencial_torre as string) || undefined,
+                            presencial_apt: (reserva.presencial_apt as string) || undefined,
+                            presencial_bloco: (reserva.presencial_bloco as string) || undefined,
                             usuarios: dadosUsuario as ReservaSlotAdmin['usuarios'],
                         };
                     }
@@ -662,11 +670,17 @@ export default function DashboardPage() {
                                         {/* Nome de quem reservou (visível só para admins) */}
                                         {slot.status === 'ocupado' && isAdmin && info?.usuarios && (
                                             <div className="flex items-center gap-2 border-l pl-4 border-gray-200">
-                                                {info.observacao ? (
+                                                {(info.presencial_nome || info.observacao) ? (
                                                     <div className="flex flex-col">
                                                         <span className="text-sm font-bold text-gray-700">
-                                                            {info.observacao}
+                                                            {info.presencial_nome || info.observacao}
                                                         </span>
+                                                        {info.presencial_torre && (
+                                                            <span className="text-xs text-gray-500">
+                                                                T{info.presencial_torre}{info.presencial_apt ? `, Apto ${info.presencial_apt}` : ''}
+                                                                {info.presencial_bloco ? `, Bloco ${info.presencial_bloco}` : ''}
+                                                            </span>
+                                                        )}
                                                         <span className="text-xs text-amber-600 font-semibold">
                                                             Presencial — {info.usuarios.nome_completo || info.usuarios.nome}
                                                         </span>
