@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { CheckCircle2, ShieldAlert, Key, Plus, X, UserCheck, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 import { getCsrfToken } from '@/lib/csrf-client';
+import { formatPhone } from '@/lib/phone-mask';
 
 interface Reserva {
     id: string;
@@ -490,7 +491,7 @@ export default function PorteiroAgendaHoje() {
                             <input
                                 type="tel"
                                 value={telefonePresencial}
-                                onChange={e => setTelefonePresencial(e.target.value)}
+                                onChange={e => setTelefonePresencial(formatPhone(e.target.value))}
                                 placeholder="Ex: (11) 99999-8888"
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500"
                             />
