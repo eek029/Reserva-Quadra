@@ -24,7 +24,7 @@ export const reservaPresencialSchema = z.object({
   telefone_contato: z.string().regex(telefoneRegex, 'Telefone deve estar no formato (XX) XXXXX-XXXX ou (XX) XXXX-XXXX'),
   presencial_torre: z.enum(['1', '2', '3', '4', '5'], { message: 'Torre invalida' }),
   presencial_apt: z.string().min(1, 'Apartamento e obrigatorio'),
-  presencial_bloco: z.enum(['A', 'B', 'C', 'D']).optional().nullable(),
+  presencial_bloco: z.enum(['A', 'B']).optional().nullable(),
   presencial_documento: z.string().min(3, 'Documento deve ter ao menos 3 caracteres').optional().nullable(),
   hora_inicio: z.string().regex(timeRegex, 'Formato deve ser HH:MM'),
   hora_fim: z.string().regex(timeRegex, 'Formato deve ser HH:MM'),

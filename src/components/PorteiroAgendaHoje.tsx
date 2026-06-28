@@ -246,7 +246,7 @@ export default function PorteiroAgendaHoje() {
                 fetchReservasHoje();
             } else {
                 const err = await res.json();
-                alert(`Erro: ${err.detail || 'Não foi possível criar a reserva.'}`);
+                alert(`Erro: ${err.error || 'Não foi possível criar a reserva.'}`);
             }
         } catch (e) {
             console.error(e);
@@ -535,7 +535,7 @@ export default function PorteiroAgendaHoje() {
                                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500 bg-white"
                                 >
                                     <option value="">Selecione...</option>
-                                    {['A','B','C','D'].map(b => (
+                                    {['A','B'].map(b => (
                                         <option key={b} value={b}>Bloco {b}</option>
                                     ))}
                                 </select>
