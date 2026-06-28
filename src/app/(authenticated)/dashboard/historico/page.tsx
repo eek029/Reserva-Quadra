@@ -17,6 +17,11 @@ interface ReservaHistorico {
   motivo_cancelamento: string | null
   observacao: string | null
   telefone_contato: string | null
+  presencial_nome: string | null
+  presencial_torre: string | null
+  presencial_apt: string | null
+  presencial_bloco: string | null
+  presencial_documento: string | null
   status_chave: string | null
   retirada_em: string | null
   devolvida_em: string | null
@@ -189,9 +194,10 @@ export default function HistoricoPage() {
                         {formatTime(reserva.hora_inicio)} - {formatTime(reserva.hora_fim)}
                       </span>
                     </div>
-                    {reserva.observacao ? (
+                    {(reserva.presencial_nome || reserva.observacao) ? (
                       <span className="text-sm text-gray-600 truncate hidden sm:block">
-                        {reserva.observacao}
+                        {reserva.presencial_nome || reserva.observacao}
+                        {reserva.presencial_torre && ` • T${reserva.presencial_torre}${reserva.presencial_apt ? `, Apto ${reserva.presencial_apt}` : ''}`}
                         <span className="text-xs text-amber-600 font-semibold ml-2">Presencial</span>
                       </span>
                     ) : reserva.usuarios && (
@@ -219,14 +225,22 @@ export default function HistoricoPage() {
                       <div>
                         <span className="text-gray-400 font-semibold text-xs">Morador</span>
                         <p className="text-gray-700">
-                          {reserva.observacao
-                            ? reserva.observacao
-                            : (reserva.usuarios?.nome_completo ?? '—')}
+                          {reserva.presencial_nome 
+                            ? reserva.presencial_nome
+                            : (reserva.observacao ?? reserva.usuarios?.nome_completo ?? '—')}
                         </p>
-                        {reserva.observacao && (
-                          <span className="text-xs text-amber-600 font-semibold mt-0.5 inline-block">Presencial</span>
+                        {reserva.presencial_nome && (
+                          <>
+                            {reserva.presencial_torre && (
+                              <span className="text-xs text-gray-500 mt-0.5 inline-block">
+                                T{reserva.presencial_torre}{reserva.presencial_apt ? `, Apto ${reserva.presencial_apt}` : ''}
+                                {reserva.presencial_bloco ? `, Bloco ${reserva.presencial_bloco}` : ''}
+                              </span>
+                            )}
+                            <span className="text-xs text-amber-600 font-semibold mt-0.5 inline-block">Presencial</span>
+                          </>
                         )}
-                        {!reserva.observacao && reserva.usuarios?.torre && (
+                        {!reserva.presencial_nome && !reserva.observacao && reserva.usuarios?.torre && (
                           <span className="text-xs text-gray-500 mt-0.5 inline-block">
                             T{reserva.usuarios.torre}{reserva.usuarios.apartamento ? `, Apto ${reserva.usuarios.apartamento}` : ''}
                           </span>

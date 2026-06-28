@@ -120,7 +120,7 @@ export async function listarHistoricoReservas(
     const { data: torreUserIds } = await supabase
       .from('usuarios').select('id').eq('torre', callerTorre)
     const ids = torreUserIds?.map(u => u.id) ?? []
-    query = query.in('usuario_id', ids)
+    query = query.or(`usuario_id.in.(${ids.length > 0 ? ids.join(',') : '00000000-0000-0000-0000-000000000000'}),presencial_torre.eq.${callerTorre}`)
   }
   if (morador) {
     const { data: matchingUsers } = await supabase
