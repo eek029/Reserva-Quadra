@@ -36,7 +36,12 @@ CREATE TABLE IF NOT EXISTS public.reservas (
     cancelado_por uuid REFERENCES public.usuarios(id),
     ocorrencia_texto text,
     turno_registro text CHECK (turno_registro IN ('Turno Dia', 'Turno Noite')),
-    observacao text
+    observacao text,
+    presencial_nome text,
+    presencial_torre text,
+    presencial_apt text,
+    presencial_bloco text,
+    presencial_documento text
 );
 
 CREATE TABLE IF NOT EXISTS public.audit_logs (
