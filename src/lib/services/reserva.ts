@@ -295,3 +295,13 @@ export async function validarReserva(supabase: SupabaseClient, body: unknown) {
 
   return { status: 'valid' }
 }
+
+export async function getConfig(supabase: SupabaseClient, chave: string): Promise<string | null> {
+  const { data } = await supabase.from('config').select('valor').eq('chave', chave).maybeSingle()
+  return data?.valor ?? null
+}
+
+export async function setConfig(supabase: SupabaseClient, chave: string, valor: string): Promise<void> {
+  const { error } = await supabase.from('config').upsert({ chave, valor })
+  if (error) throw new AppError(error.message, 500)
+}

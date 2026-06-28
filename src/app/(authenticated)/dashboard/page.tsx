@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Calendar as CalendarIcon, List, ChevronLeft, ChevronRight,
-    Users, XCircle, CloudRain, Wrench, Loader2, X, Lock, Unlock, History, Bell, Trash2
+    Users, XCircle, CloudRain, Wrench, Loader2, X, Lock, Unlock, History, Bell, Trash2, Key
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -329,6 +329,42 @@ export default function DashboardPage() {
     // Bloqueio
     const [isBloqueioModalOpen, setIsBloqueioModalOpen] = useState(false);
 
+    // Config: torre gestão de chaves
+    const [torreGestaoChaves, setTorreGestaoChaves] = useState('');
+    const [updatingTorreChaves, setUpdatingTorreChaves] = useState(false);
+
+    useEffect(() => {
+        const loadConfig = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+            const res = await fetch('/api/config', {
+                headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setTorreGestaoChaves(data.torre_gestao_chaves);
+            }
+        };
+        loadConfig();
+    }, []);
+
+    const handleChangeTorreChaves = async (torre: string) => {
+        setUpdatingTorreChaves(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) { setUpdatingTorreChaves(false); return; }
+        const res = await fetch('/api/config', {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ torre_gestao_chaves: torre }),
+        });
+        if (res.ok) setTorreGestaoChaves(torre);
+        else alert('Erro ao alterar configuração.');
+        setUpdatingTorreChaves(false);
+    };
+
     useEffect(() => {
         const loadUser = async () => {
             const { data: { session } } = await supabase.auth.getSession();
@@ -597,17 +633,56 @@ export default function DashboardPage() {
                             <h2 className="text-sm font-semibold text-gray-700 group-hover:text-violet-700 transition-colors">
                                 Mensagens
                             </h2>
-                            <p className="text-xs text-gray-400 mt-0.5">
-                                Central de notificações e comunicados
-                            </p>
+                                    <p className="text-xs text-gray-400 mt-0.5">
+                                        Central de notificações e comunicados
+                                    </p>
+                                </div>
+                                <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-violet-400 transition-colors" />
+                            </Link>
+                            {isSindicoOuSysAdmin && (
+                                <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+                                    <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                                        <Key className="w-4 h-4 text-violet-600" />
+                                        Gestão de Chaves
+                                    </h2>
+                                    <p className="text-xs text-gray-500 mb-2">
+                                        Torre responsável pela prancheta e controle de chaves:
+                                    </p>
+                                    <div className="flex gap-2">
+                                        {['1','2','3','4','5'].map(t => (
+                                            <button
+                                                key={t}
+                                                onClick={() => handleChangeTorreChaves(t)}
+                                                disabled={updatingTorreChaves || torreGestaoChaves === t}
+                                                className={`flex-1 py-2 rounded-lg text-sm font-bold transition-colors ${
+                                                    torreGestaoChaves === t
+                                                        ? 'bg-violet-600 text-white shadow-sm'
+                                                        : 'bg-gray-100 text-gray-600 hover:bg-violet-50 hover:text-violet-700'
+                                                } disabled:opacity-60 disabled:cursor-default`}
+                                            >T{t}</button>
+                                        ))}
+                                    </div>
+                                    {updatingTorreChaves && (
+                                        <p className="text-xs text-violet-500 mt-2">Alterando...</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-violet-400 transition-colors" />
-                    </Link>
-                </div>
             )}
 
             {currentUser.cargo === 'Porteiro' ? (
-                <PorteiroAgendaHoje />
+                torreGestaoChaves && currentUser.torre !== torreGestaoChaves ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
+                        <p className="text-amber-800 font-semibold">
+                            A gestão de chaves está centralizada na Torre {torreGestaoChaves}.
+                        </p>
+                        <p className="text-amber-600 text-sm mt-1">
+                            Apenas porteiros da Torre {torreGestaoChaves} têm acesso à prancheta.
+                        </p>
+                    </div>
+                ) : (
+                    <PorteiroAgendaHoje />
+                )
             ) : activeTab === 'minhas-reservas' ? (
                 <MinhasReservas onReservaChanged={fetchReservas} />
             ) : (
