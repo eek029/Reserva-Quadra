@@ -34,10 +34,10 @@ export async function GET(request: NextRequest) {
     if (authError || !user) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
     const { data: perfil } = await supabase
-      .from('usuarios').select('cargo').eq('id', user.id).maybeSingle();
+      .from('usuarios').select('cargo, torre').eq('id', user.id).maybeSingle();
 
     const data = request.nextUrl.searchParams.get('data') ?? undefined;
-    const result = await listarReservas(supabase, data, user.id, perfil?.cargo);
+    const result = await listarReservas(supabase, data, user.id, perfil?.cargo, perfil?.torre);
     return NextResponse.json(result);
   } catch (e) { return handleError(e); }
 }

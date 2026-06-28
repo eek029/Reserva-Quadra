@@ -10,20 +10,53 @@ export class ForbiddenError extends AppError { constructor(m: string) { super(m,
 export class NotFoundError extends AppError { constructor(m: string) { super(m, 404) } }
 export class ConflictError extends AppError { constructor(m: string) { super(m, 409) } }
 
-export async function listarReservas(supabase: SupabaseClient, data?: string, callerId?: string, callerCargo?: string) {
+export async function listarReservas(supabase: SupabaseClient, data?: string, callerId?: string, callerCargo?: string, callerTorre?: string) {
+  const canViewAll = ['SysAdmin', 'Síndico Geral', 'Porteiro'].includes(callerCargo ?? '')
+
   let query = supabase
     .from('reservas')
-    .select(`*, usuarios!usuario_id(nome_completo, foto_url, torre, apartamento, cargo), porteiro_entrega:entregue_por(nome_completo), porteiro_recebimento:recebida_por(nome_completo), observacao, telefone_contato`)
+    .select(`*,
+      usuarios!usuario_id(nome_completo, foto_url, torre, apartamento, cargo),
+      porteiro_entrega:entregue_por(nome_completo),
+      porteiro_recebimento:recebida_por(nome_completo)
+    `)
     .eq('status', 'ativa')
 
   if (data) query = query.eq('data_reserva', data)
 
-  const isAdminGlobal = callerCargo === 'Síndico Geral' || callerCargo === 'SysAdmin'
-  if (isAdminGlobal) query = query.order('hora_inicio', { ascending: true })
+  const podeOrdenar = callerCargo === 'Síndico Geral' || callerCargo === 'SysAdmin'
+  if (podeOrdenar) query = query.order('hora_inicio', { ascending: true })
+
+  let torreUserIds: string[] = []
+  if (callerCargo === 'Subsíndico' && callerTorre) {
+    const { data: users } = await supabase
+      .from('usuarios').select('id').eq('torre', callerTorre)
+    torreUserIds = users?.map(u => u.id) ?? []
+  }
 
   const { data: result, error } = await query
   if (error) throw new AppError(error.message, 500)
-  return result ?? []
+
+  return (result ?? []).map(r => {
+    if (canViewAll) return r
+
+    if (callerCargo === 'Subsíndico' && callerTorre) {
+      const pertenceTorre = torreUserIds.includes(r.usuario_id)
+      const presencialTorre = r.presencial_torre === callerTorre
+      if (pertenceTorre || presencialTorre) return r
+    }
+
+    return {
+      id: r.id, data_reserva: r.data_reserva,
+      hora_inicio: r.hora_inicio, hora_fim: r.hora_fim,
+      status: r.status, usuario_id: r.usuario_id,
+      status_chave: r.status_chave,
+      usuarios: null,
+      observacao: null, telefone_contato: null,
+      presencial_nome: null, presencial_torre: null,
+      presencial_apt: null, presencial_bloco: null, presencial_documento: null,
+    }
+  })
 }
 
 export async function criarReserva(supabase: SupabaseClient, body: unknown) {
