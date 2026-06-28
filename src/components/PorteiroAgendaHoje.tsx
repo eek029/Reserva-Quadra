@@ -15,6 +15,11 @@ interface Reserva {
     status_chave: string;
     observacao?: string;
     telefone_contato?: string;
+    presencial_nome?: string;
+    presencial_torre?: string;
+    presencial_apt?: string;
+    presencial_bloco?: string;
+    presencial_documento?: string;
     created_at?: string;
     retirada_em?: string;
     devolvida_em?: string;
@@ -107,8 +112,12 @@ export default function PorteiroAgendaHoje() {
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const [isPresencialOpen, setIsPresencialOpen] = useState(false);
-    const [observacaoPresencial, setObservacaoPresencial] = useState('');
+    const [nomePresencial, setNomePresencial] = useState('');
     const [telefonePresencial, setTelefonePresencial] = useState('');
+    const [torrePresencial, setTorrePresencial] = useState('');
+    const [aptPresencial, setAptPresencial] = useState('');
+    const [blocoPresencial, setBlocoPresencial] = useState('');
+    const [documentoPresencial, setDocumentoPresencial] = useState('');
     const [selectedSlot, setSelectedSlot] = useState('');
     const [freeSlots, setFreeSlots] = useState<Slot[]>([]);
     const [isSavingPresencial, setIsSavingPresencial] = useState(false);
@@ -169,8 +178,12 @@ export default function PorteiroAgendaHoje() {
 
     const openPresencialModal = async () => {
         setIsPresencialOpen(true);
-        setObservacaoPresencial('');
+        setNomePresencial('');
         setTelefonePresencial('');
+        setTorrePresencial('');
+        setAptPresencial('');
+        setBlocoPresencial('');
+        setDocumentoPresencial('');
         setSelectedSlot('');
 
         const dateStr = getTodayBRT();
@@ -196,7 +209,7 @@ export default function PorteiroAgendaHoje() {
     };
 
     const handleConfirmarPresencial = async () => {
-        if (!observacaoPresencial.trim() || !telefonePresencial.trim() || !selectedSlot || !sessionUserId) return;
+        if (!nomePresencial.trim() || !telefonePresencial.trim() || !torrePresencial || !aptPresencial.trim() || !selectedSlot || !sessionUserId) return;
         setIsSavingPresencial(true);
 
         const slot = ALL_SLOTS.find(s => s.hora_inicio === selectedSlot);
@@ -217,8 +230,12 @@ export default function PorteiroAgendaHoje() {
                     'x-csrf-token': csrf,
                 },
                 body: JSON.stringify({
-                    observacao: observacaoPresencial.trim(),
+                    presencial_nome: nomePresencial.trim(),
                     telefone_contato: telefonePresencial.trim(),
+                    presencial_torre: torrePresencial,
+                    presencial_apt: aptPresencial.trim(),
+                    presencial_bloco: blocoPresencial || null,
+                    presencial_documento: documentoPresencial.trim() || null,
                     hora_inicio: slot.hora_inicio,
                     hora_fim: slot.hora_fim,
                 }),
@@ -339,15 +356,21 @@ export default function PorteiroAgendaHoje() {
                                             )}
                                         </div>
                                         <div>
-                                            {res.observacao ? (
-                                                <>
-                                                    <p className="font-bold text-gray-900 leading-tight">{res.observacao}</p>
-                                                    <p className="text-xs text-amber-600 font-semibold mt-0.5">Presencial</p>
-                                                    {res.telefone_contato && (
-                                                        <p className="text-xs text-gray-500 mt-0.5">Tel: {res.telefone_contato}</p>
-                                                    )}
-                                                </>
-                                            ) : (
+            {res.presencial_nome || res.observacao ? (
+                <>
+                    <p className="font-bold text-gray-900 leading-tight">{res.presencial_nome || res.observacao}</p>
+                    <p className="text-xs text-amber-600 font-semibold mt-0.5">Presencial</p>
+                    {res.presencial_torre && (
+                        <p className="text-xs text-gray-500 mt-0.5">
+                            T{res.presencial_torre}{res.presencial_apt ? `, Apto ${res.presencial_apt}` : ''}
+                            {res.presencial_bloco ? `, Bloco ${res.presencial_bloco}` : ''}
+                        </p>
+                    )}
+                    {res.telefone_contato && (
+                        <p className="text-xs text-gray-500 mt-0.5">Tel: {res.telefone_contato}</p>
+                    )}
+                </>
+            ) : (
                                                 <>
                                                     <p className="font-bold text-gray-900 leading-tight">{res.usuarios?.nome_completo}</p>
                                                     <p className="text-xs font-semibold text-violet-700 bg-violet-100 inline-block px-2 py-0.5 rounded-full mt-1">
@@ -449,13 +472,13 @@ export default function PorteiroAgendaHoje() {
 
                         <div className="mb-4">
                             <label className="block text-sm font-semibold text-gray-700 mb-1">
-                                Nome e Apto do Morador <span className="font-normal text-gray-400">(Registro Manual)</span>
+                                Nome do Morador <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="text"
-                                value={observacaoPresencial}
-                                onChange={e => setObservacaoPresencial(e.target.value)}
-                                placeholder="Ex: João Silva — Torre 2, Apto 304"
+                                value={nomePresencial}
+                                onChange={e => setNomePresencial(e.target.value)}
+                                placeholder="Ex: João Silva"
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500"
                             />
                         </div>
@@ -469,6 +492,65 @@ export default function PorteiroAgendaHoje() {
                                 value={telefonePresencial}
                                 onChange={e => setTelefonePresencial(e.target.value)}
                                 placeholder="Ex: (11) 99999-8888"
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                    Torre <span className="text-red-500">*</span>
+                                </label>
+                                <select
+                                    value={torrePresencial}
+                                    onChange={e => { setTorrePresencial(e.target.value); if (e.target.value !== '5') setBlocoPresencial(''); }}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500 bg-white"
+                                >
+                                    <option value="">Selecione...</option>
+                                    {['1','2','3','4','5'].map(t => (
+                                        <option key={t} value={t}>Torre {t}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                    Apartamento <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    value={aptPresencial}
+                                    onChange={e => setAptPresencial(e.target.value)}
+                                    placeholder="Ex: 304"
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500"
+                                />
+                            </div>
+                        </div>
+
+                        {torrePresencial === '5' && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">Bloco</label>
+                                <select
+                                    value={blocoPresencial}
+                                    onChange={e => setBlocoPresencial(e.target.value)}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500 bg-white"
+                                >
+                                    <option value="">Selecione...</option>
+                                    {['A','B','C','D'].map(b => (
+                                        <option key={b} value={b}>Bloco {b}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+
+                        <div className="mb-4">
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">
+                                Documento (RG/CPF)
+                            </label>
+                            <input
+                                type="text"
+                                value={documentoPresencial}
+                                onChange={e => setDocumentoPresencial(e.target.value)}
+                                placeholder="Ex: 12.345.678-9 ou 123.456.789-00"
                                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-violet-500 focus:border-violet-500"
                             />
                         </div>
@@ -502,7 +584,7 @@ export default function PorteiroAgendaHoje() {
                             </button>
                             <button
                                 onClick={handleConfirmarPresencial}
-                                disabled={!observacaoPresencial.trim() || !telefonePresencial.trim() || !selectedSlot || isSavingPresencial || freeSlots.length === 0}
+                                disabled={!nomePresencial.trim() || !telefonePresencial.trim() || !torrePresencial || !aptPresencial.trim() || !selectedSlot || isSavingPresencial || freeSlots.length === 0}
                                 className="flex-1 py-2 font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                             >
                                 {isSavingPresencial ? (
