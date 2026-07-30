@@ -27,11 +27,12 @@ export async function listarReservas(supabase: SupabaseClient, data?: string, ca
   const podeOrdenar = callerCargo === 'Síndico Geral' || callerCargo === 'SysAdmin'
   if (podeOrdenar) query = query.order('hora_inicio', { ascending: true })
 
-  let torreUserIds: string[] = []
+  // Torre filtering (database-level security)
   if (callerCargo === 'Subsíndico' && callerTorre) {
-    const { data: users } = await supabase
+    const { data: torreUserIds } = await supabase
       .from('usuarios').select('id').eq('torre', callerTorre)
-    torreUserIds = users?.map(u => u.id) ?? []
+    const ids = torreUserIds?.map(u => u.id) ?? []
+    query = query.or(`usuario_id.in.(${ids.length > 0 ? ids.join(',') : '00000000-0000-0000-0000-000000000000'}),presencial_torre.eq.${callerTorre}`)
   }
 
   const { data: result, error } = await query
@@ -40,12 +41,7 @@ export async function listarReservas(supabase: SupabaseClient, data?: string, ca
   return (result ?? []).map(r => {
     if (canViewAll) return r
 
-    if (callerCargo === 'Subsíndico' && callerTorre) {
-      const pertenceTorre = torreUserIds.includes(r.usuario_id)
-      const presencialTorre = r.presencial_torre === callerTorre
-      if (pertenceTorre || presencialTorre) return r
-    }
-
+    // Additional masking for restricted roles (defense in depth)
     return {
       id: r.id, data_reserva: r.data_reserva,
       hora_inicio: r.hora_inicio, hora_fim: r.hora_fim,
