@@ -31,6 +31,13 @@ export async function PATCH(request: NextRequest) {
     const rl = limiter.check(request);
     if (rl) return rl;
 
+    // CSRF validation before processing any data
+    const csrfToken = request.headers.get('x-csrf-token');
+    const csrfCookie = request.cookies.get('csrf-token')?.value;
+    if (!csrfToken || !csrfCookie || csrfToken !== csrfCookie) {
+      return NextResponse.json({ error: 'Invalid CSRF token' }, { status: 403 });
+    }
+
     const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
     if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
