@@ -34,9 +34,20 @@ export async function GET(
     if (authError || !caller) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
 
     const { data: callerProfile } = await supabase
-      .from('usuarios').select('cargo').eq('id', caller.id).maybeSingle();
+      .from('usuarios').select('cargo, torre').eq('id', caller.id).maybeSingle();
 
     if (!callerProfile || !ADMIN_CARGOS.includes(callerProfile.cargo))
+      return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
+
+    // Fetch target user's torre for authorization validation
+    const { data: targetUser } = await supabase
+      .from('usuarios').select('torre').eq('id', id).maybeSingle();
+
+    if (!targetUser)
+      return NextResponse.json({ error: 'Usuário não encontrado.' }, { status: 404 });
+
+    // Subsíndicos can only access users in their own tower
+    if (callerProfile.cargo === 'Subsíndico' && callerProfile.torre !== targetUser.torre)
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
 
     const data = await getUsuarioDecrypted(supabase, id);
@@ -92,13 +103,24 @@ export async function GET(
     if (authError || !caller) return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
 
     const { data: callerProfile } = await supabase
-      .from('usuarios').select('cargo').eq('id', caller.id).maybeSingle();
+      .from('usuarios').select('cargo, torre').eq('id', caller.id).maybeSingle();
 
     if (!callerProfile || !ADMIN_CARGOS.includes(callerProfile.cargo))
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
 
-     const body = await request.json();
-     await atualizarUsuario(supabase, id, caller.id, body);
+    // Fetch target user's torre for authorization validation
+    const { data: targetUser } = await supabase
+      .from('usuarios').select('torre').eq('id', id).maybeSingle();
+
+    if (!targetUser)
+      return NextResponse.json({ error: 'Usuário não encontrado.' }, { status: 404 });
+
+    // Subsíndicos can only access users in their own tower
+    if (callerProfile.cargo === 'Subsíndico' && callerProfile.torre !== targetUser.torre)
+      return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
+
+      const body = await request.json();
+      await atualizarUsuario(supabase, id, caller.id, body);
      return NextResponse.json({ ok: true });
    } catch (e) {
      if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
