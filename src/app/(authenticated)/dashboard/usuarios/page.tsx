@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getCsrfToken } from '@/lib/csrf-client';
 import {
     Users, Search, ChevronLeft, ChevronRight, Trash2, Shield,
     ShieldAlert, Loader2, Filter, CheckCircle, Clock, XCircle
@@ -61,38 +62,28 @@ export default function UsuariosPage() {
         if (!currentUser) return;
         setIsLoading(true);
 
-        let query = supabase
-            .from('usuarios')
-            .select('id, nome_completo, cargo, torre, apartamento, bloco, status, telefone, foto_url', { count: 'exact' })
-            .neq('id', currentUser.id)
-            .eq('status', statusFilter)
-            .order('nome_completo', { ascending: true })
-            .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token || '';
+        const params = new URLSearchParams({
+            status: statusFilter,
+            page: String(page),
+            pageSize: String(PAGE_SIZE),
+            visao: 'gestao',
+            exclude_id: currentUser.id,
+        });
+        if (search.trim()) params.set('search', search.trim());
+        if (currentUser.cargo !== 'Subsíndico' && torreFilter) params.set('torre', torreFilter);
 
-        // Subsídico can only see their own torre
-        if (currentUser.cargo === 'Subsíndico') {
-            query = query.eq('torre', currentUser.torre);
-        } else if (torreFilter) {
-            query = query.eq('torre', torreFilter);
+        const res = await fetch(`/api/usuarios?${params}`, {
+            headers: { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' },
+        });
+        if (!res.ok) {
+            setIsLoading(false);
+            return;
         }
-
-        // Filter by name or apto (case insensitive)
-        if (search.trim()) {
-            query = query.or(`nome_completo.ilike.%${search.trim()}%,apartamento.ilike.%${search.trim()}%`);
-        }
-
-        // Role visibility: SysAdmin sees all, Síndico Geral sees non-SysAdmin, Subsídico sees limited roles
-        if (currentUser.cargo === 'Síndico Geral') {
-            query = query.neq('cargo', 'SysAdmin');
-        } else if (currentUser.cargo === 'Subsíndico') {
-            query = query.in('cargo', DELETABLE_BY_SINDICO);
-        }
-
-        const { data, count, error } = await query;
-        if (!error && data) {
-            setUsuarios(data);
-            setTotal(count || 0);
-        }
+        const payload = await res.json();
+        setUsuarios(payload.usuarios ?? []);
+        setTotal(payload.total ?? 0);
         setIsLoading(false);
     }, [currentUser, page, search, torreFilter, statusFilter]);
 
@@ -102,31 +93,53 @@ export default function UsuariosPage() {
     // Reset to page 1 when filters change
     useEffect(() => { setPage(1); }, [search, torreFilter, statusFilter]);
 
+    const authHeaders = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        return {
+            Authorization: `Bearer ${session?.access_token || ''}`,
+            'Content-Type': 'application/json',
+            'x-csrf-token': getCsrfToken() || '',
+        };
+    };
+
     const handleApprove = async (userId: string) => {
         const target = usuarios.find(u => u.id === userId);
         if (target?.cargo !== 'SysAdmin' && !target?.foto_url) {
             alert('Não é possível aprovar cadastro sem foto de perfil.');
             return;
         }
-        const { error } = await supabase.from('usuarios').update({ status: 'aprovado' }).eq('id', userId);
-        if (error) {
-            alert(error.message || 'Falha ao aprovar usuário.');
+        const res = await fetch(`/api/usuarios/${userId}`, {
+            method: 'PATCH',
+            headers: await authHeaders(),
+            body: JSON.stringify({ status: 'aprovado' }),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert(err.error || 'Falha ao aprovar usuário.');
             return;
         }
         fetchUsuarios();
     };
 
     const handleReject = async (userId: string) => {
-        const { error } = await supabase.from('usuarios').update({ status: 'rejeitado' }).eq('id', userId);
-        if (!error) fetchUsuarios();
+        const res = await fetch(`/api/usuarios/${userId}`, {
+            method: 'PATCH',
+            headers: await authHeaders(),
+            body: JSON.stringify({ status: 'rejeitado' }),
+        });
+        if (res.ok) fetchUsuarios();
     };
 
     const handleDelete = async () => {
         if (!confirmTarget) return;
         setIsDeleting(true);
-        const { error } = await supabase.from('usuarios').delete().eq('id', confirmTarget.id);
-        if (error) {
-            alert(`Erro ao excluir: ${error.message}`);
+        const res = await fetch(`/api/usuarios/${confirmTarget.id}`, {
+            method: 'DELETE',
+            headers: await authHeaders(),
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert(`Erro ao excluir: ${err.error || 'Falha na requisição'}`);
         } else {
             setUsuarios(prev => prev.filter(u => u.id !== confirmTarget.id));
             setTotal(t => t - 1);

@@ -90,7 +90,7 @@ export const atualizarUsuarioSchema = z.object({
 })
 
 export const dataQuerySchema = z.string().regex(dateRegex, 'Formato deve ser YYYY-MM-DD').optional()
-export const statusQuerySchema = z.enum(['pendente', 'aprovado', 'rejeitado']).optional()
+export const statusQuerySchema = z.enum(['pendente', 'aprovado', 'rejeitado', 'todos']).optional()
 
 export const validateReservaSchema = z.object({
   usuario_id: z.string().uuid(),

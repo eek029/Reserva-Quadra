@@ -27,8 +27,21 @@ export async function GET(request: NextRequest) {
       .from('usuarios').select('cargo, torre').eq('id', user.id).maybeSingle();
     if (!caller) return NextResponse.json({ error: 'Perfil não encontrado.' }, { status: 401 });
 
-    const status = request.nextUrl.searchParams.get('status') ?? undefined;
-    const result = await listarUsuarios(supabase, status, user.id, caller.cargo, caller.torre);
+    const q = request.nextUrl.searchParams
+    const pageRaw = q.get('page')
+    const pageSizeRaw = q.get('pageSize')
+    const result = await listarUsuarios(supabase, {
+      status: q.get('status') ?? undefined,
+      callerId: user.id,
+      callerCargo: caller.cargo,
+      callerTorre: caller.torre,
+      search: q.get('search') ?? undefined,
+      torre: q.get('torre') ?? undefined,
+      page: pageRaw ? Number(pageRaw) : undefined,
+      pageSize: pageSizeRaw ? Number(pageSizeRaw) : undefined,
+      excludeId: q.get('exclude_id') ?? undefined,
+      visao: q.get('visao') ?? undefined,
+    });
     return NextResponse.json(result);
    } catch (e) {
      if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });

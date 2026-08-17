@@ -15,6 +15,8 @@ interface Usuario {
     cargo?: string;
     status?: string;
     foto_url?: string;
+    tem_cpf?: boolean;
+    tem_rg?: boolean;
     cpf_encrypted?: string;
     rg_encrypted?: string;
 }
@@ -211,14 +213,14 @@ function AuditModal({
                         <SensitiveRow
                             label="CPF"
                             show={showSensitive}
-                            hasCrypt={!!user.cpf_encrypted}
+                            hasCrypt={!!(user.tem_cpf ?? user.cpf_encrypted)}
                             rawValue={decrypted?.cpf ?? null}
                             maskFn={maskCpf}
                         />
                         <SensitiveRow
                             label="RG"
                             show={showSensitive}
-                            hasCrypt={!!user.rg_encrypted}
+                            hasCrypt={!!(user.tem_rg ?? user.rg_encrypted)}
                             rawValue={decrypted?.rg ?? null}
                             maskFn={maskRg}
                         />
@@ -317,7 +319,8 @@ export default function AdminApprovalPanel({ currentUserRole }: Props) {
                 console.error('Erro ao buscar pendentes:', await res.text());
                 return;
             }
-            const data: Usuario[] = await res.json();
+            const payload = await res.json();
+            const data: Usuario[] = Array.isArray(payload) ? payload : (payload.usuarios ?? []);
             setPendingUsers(data);
         } catch (err) {
             console.error('Error fetching pending users', err);

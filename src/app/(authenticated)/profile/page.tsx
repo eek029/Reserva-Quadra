@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Camera, ShieldAlert, Upload, Loader2, CheckCircle } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
+import { assinarFotoCliente } from '@/lib/avatar-client';
 
 interface Usuario {
     id: string;
@@ -51,7 +52,8 @@ export default function ProfilePage() {
                 .single();
 
             if (data) {
-                setUser(data);
+                const fotoUrl = await assinarFotoCliente(supabase, data.foto_url);
+                setUser({ ...data, foto_url: fotoUrl ?? undefined });
                 setTelefone(maskPhone(data.telefone || ''));
                 setNomeReal(data.nome_completo || '');
                 setNovoNome(data.nome_completo || '');

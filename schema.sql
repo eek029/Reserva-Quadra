@@ -135,11 +135,8 @@ $$;
 
 -- RLS Policies: usuarios
 CREATE POLICY "select_usuarios" ON public.usuarios
-    FOR SELECT
-    USING (
-        public.get_current_user_cargo() IS DISTINCT FROM 'Subsíndico'
-        OR (torre IS NOT NULL AND torre = public.get_current_user_torre())
-    );
+    FOR SELECT TO authenticated
+    USING (auth.uid() = id);
 
 CREATE POLICY "Usuario atualiza campos seguros do proprio perfil" ON public.usuarios
     FOR UPDATE TO authenticated

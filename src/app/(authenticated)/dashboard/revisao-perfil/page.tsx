@@ -75,22 +75,32 @@ export default function RevisaoPerfilPage() {
 
         setCurrentUser(me);
 
-        let query = supabase
+        const { data, error } = await supabase
             .from('solicitacoes_perfil')
-            .select('*, usuarios!solicitacoes_perfil_usuario_id_fkey(nome_completo, cargo, torre, apartamento, foto_url)')
+            .select('*')
             .eq('status', 'pendente')
             .order('created_at', { ascending: true });
 
-        if (me.cargo === 'Subsíndico') {
-            query = query.eq('usuarios.torre', me.torre);
-        }
-
-        const { data, error } = await query;
         if (error) {
             console.error('Erro ao buscar solicitacoes_perfil:', error);
         }
+
+        const res = await fetch('/api/usuarios?status=todos', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const payload = res.ok ? await res.json() : { usuarios: [] };
+        const byId = new Map((payload.usuarios ?? []).map((u: { id: string }) => [u.id, u]));
+
         if (data) {
-            setRequests(data.filter((d: Solicitacao) => d.usuarios !== null));
+            const hydrated = data
+                .map((d: Solicitacao) => {
+                    const user = byId.get(d.usuario_id) as Solicitacao['usuarios'] | undefined;
+                    if (!user) return null;
+                    if (me.cargo === 'Subsíndico' && user.torre !== me.torre) return null;
+                    return { ...d, usuarios: user };
+                })
+                .filter(Boolean) as Solicitacao[];
+            setRequests(hydrated);
         }
         setIsLoading(false);
     }, []);

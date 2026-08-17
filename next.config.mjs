@@ -8,6 +8,12 @@ const nextConfig = {
                 port: '',
                 pathname: '/storage/v1/object/public/**',
             },
+            {
+                protocol: 'https',
+                hostname: 'bgkedrkyeofuwctiteuf.supabase.co',
+                port: '',
+                pathname: '/storage/v1/object/sign/**',
+            },
         ],
     },
     async headers() {

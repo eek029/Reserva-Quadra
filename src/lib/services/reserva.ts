@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { criarReservaSchema, cancelarReservaSchema, chaveSchema, validateReservaSchema, reservaPresencialSchema, historicoQuerySchema } from '@/lib/validators'
+import { assinarFotoUrls } from '@/lib/avatar'
 
 export class AppError extends Error {
   status: number
@@ -38,8 +39,19 @@ export async function listarReservas(supabase: SupabaseClient, data?: string, ca
   const { data: result, error } = await query
   if (error) throw new AppError(error.message, 500)
 
-  return (result ?? []).map(r => {
-    if (canViewAll) return r
+  const rows = result ?? []
+  const signed = await assinarFotoUrls(
+    supabase,
+    rows.map(r => (r.usuarios as { foto_url?: string | null } | null)?.foto_url),
+  )
+
+  return rows.map(r => {
+    const usuario = r.usuarios as { foto_url?: string | null } | null
+    const withPhoto = usuario
+      ? { ...r, usuarios: { ...usuario, foto_url: usuario.foto_url ? (signed.get(usuario.foto_url) ?? usuario.foto_url) : usuario.foto_url } }
+      : r
+
+    if (canViewAll) return withPhoto
 
     // Additional masking for restricted roles (defense in depth)
     return {
@@ -162,7 +174,27 @@ export async function listarHistoricoReservas(
   const { data, error, count } = await query
   if (error) throw new AppError(error.message, 500)
 
-  return { data: data ?? [], total: count ?? 0, page }
+  const rows = data ?? []
+  const signed = await assinarFotoUrls(
+    supabase,
+    rows.map(r => (r.usuarios as { foto_url?: string | null } | null)?.foto_url),
+  )
+
+  return {
+    data: rows.map(r => {
+      const usuario = r.usuarios as { foto_url?: string | null } | null
+      if (!usuario) return r
+      return {
+        ...r,
+        usuarios: {
+          ...usuario,
+          foto_url: usuario.foto_url ? (signed.get(usuario.foto_url) ?? usuario.foto_url) : usuario.foto_url,
+        },
+      }
+    }),
+    total: count ?? 0,
+    page,
+  }
 }
 
 export async function registrarChave(supabase: SupabaseClient, id: string, body: unknown, requesterId: string) {

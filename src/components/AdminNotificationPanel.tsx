@@ -25,27 +25,13 @@ export default function AdminNotificationPanel() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            // Get logged-in user's role and torre to enforce Subsíndico isolation
-            const { data: meData } = await supabase
-                .from('usuarios')
-                .select('cargo, torre')
-                .eq('id', session.user.id)
-                .single();
-
-            let query = supabase
-                .from('usuarios')
-                .select('id, nome_completo, torre, apartamento')
-                .eq('status', 'aprovado')
-                .neq('id', session.user.id)
-                .order('nome_completo', { ascending: true });
-
-            // Subsíndico only sees users from their own torre
-            if (meData?.cargo === 'Subsíndico' && meData.torre) {
-                query = query.eq('torre', meData.torre);
-            }
-
-            const { data } = await query;
-            if (data) setUsuariosOptions(data);
+            const res = await fetch('/api/usuarios?status=aprovado&exclude_id=' + session.user.id, {
+                headers: { Authorization: `Bearer ${session.access_token}` },
+            });
+            if (!res.ok) return;
+            const payload = await res.json();
+            const data: UsuarioBusca[] = payload.usuarios ?? [];
+            setUsuariosOptions(data);
         };
         fetchUsuarios();
     }, []);

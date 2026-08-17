@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { assinarFotoCliente } from '@/lib/avatar-client';
 
 interface Usuario {
     id: string;
@@ -44,7 +45,10 @@ export default function Header() {
                     .eq('id', session.user.id)
                     .single();
 
-                if (userData) setUser(userData);
+                if (userData) {
+                    const fotoUrl = await assinarFotoCliente(supabase, userData.foto_url);
+                    setUser({ ...userData, foto_url: fotoUrl ?? undefined });
+                }
 
                 try {
                     const { data: notifs, error } = await supabase
@@ -124,12 +128,18 @@ export default function Header() {
             <div className="max-w-4xl mx-auto flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-white shadow-sm bg-white">
-                        <Image
-                            src={user?.foto_url || "/Complexo.jpeg"}
-                            alt="Foto do Perfil"
-                            fill
-                            className="object-cover"
-                        />
+                        {user?.foto_url ? (
+                            // Signed storage URLs have query tokens; next/image optimizer breaks them.
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={user.foto_url} alt="Foto do Perfil" className="absolute inset-0 w-full h-full object-cover" />
+                        ) : (
+                            <Image
+                                src="/Complexo.jpeg"
+                                alt="Foto do Perfil"
+                                fill
+                                className="object-cover"
+                            />
+                        )}
                     </div>
                     {loadingUser ? (
                         <div className="flex items-center text-sm font-medium"><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Carregando...</div>

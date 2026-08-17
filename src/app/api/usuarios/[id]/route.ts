@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
-import { getUsuarioDecrypted, atualizarUsuario, AppError } from '@/lib/services/usuario';
+import { getUsuarioDecrypted, atualizarUsuario, excluirUsuario, AppError } from '@/lib/services/usuario';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { validateRequestPayload } from '@/lib/api-validation';
 import { validateUUID } from '@/lib/validators';
@@ -128,3 +128,42 @@ export async function GET(
      return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
    }
  }
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const rl = sensitiveLimiter.check(request);
+    if (rl) return rl;
+    if (!validateCsrfToken(request)) {
+      return NextResponse.json({ error: 'CSRF token inválido.' }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const uuidValidation = validateUUID(id);
+    if (!uuidValidation.valid) {
+      return NextResponse.json({ error: uuidValidation.error }, { status: 400 });
+    }
+
+    const supabase = getServiceClient();
+    const token = request.headers.get('Authorization')?.replace('Bearer ', '').trim();
+    if (!token) return NextResponse.json({ error: 'Não autorizado.' }, { status: 401 });
+
+    const { data: { user: caller }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !caller) return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
+
+    const { data: callerProfile } = await supabase
+      .from('usuarios').select('cargo, torre').eq('id', caller.id).maybeSingle();
+
+    if (!callerProfile || !ADMIN_CARGOS.includes(callerProfile.cargo))
+      return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
+
+    await excluirUsuario(supabase, id, caller.id, callerProfile.cargo, callerProfile.torre);
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    if (e instanceof AppError) return NextResponse.json({ error: e.message }, { status: e.status });
+    logger.error('usuario_delete_error', { endpoint: '/api/usuarios/[id]' });
+    return NextResponse.json({ error: 'Erro desconhecido' }, { status: 500 });
+  }
+}

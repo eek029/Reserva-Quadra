@@ -28,14 +28,14 @@ export default function UserManagementPanel({ currentUserId, currentUserRole }: 
 
     const fetchUsuarios = useCallback(async () => {
         setIsLoading(true);
-        const { data } = await supabase
-            .from('usuarios')
-            .select('id, nome_completo, cargo, torre, apartamento, status')
-            .eq('status', 'aprovado')
-            .neq('id', currentUserId)
-            .order('cargo');
-        if (data) {
-            // SysAdmin vê todos; Síndico Geral vê apenas Subsíndico/Porteiro/Morador
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token || '';
+        const res = await fetch(`/api/usuarios?status=aprovado&visao=gestao&exclude_id=${currentUserId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+            const payload = await res.json();
+            const data: Usuario[] = payload.usuarios ?? [];
             const filtered = currentUserRole === 'SysAdmin'
                 ? data
                 : data.filter(u => DELETABLE_BY_SINDICO.includes(u.cargo));
@@ -50,14 +50,20 @@ export default function UserManagementPanel({ currentUserId, currentUserRole }: 
         if (!confirmTarget) return;
         setIsDeleting(true);
 
-        // Delete from public.usuarios (FKs should cascade or we rely on trigger)
-        const { error } = await supabase
-            .from('usuarios')
-            .delete()
-            .eq('id', confirmTarget.id);
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token || '';
+        const { getCsrfToken } = await import('@/lib/csrf-client');
+        const res = await fetch(`/api/usuarios/${confirmTarget.id}`, {
+            method: 'DELETE',
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'x-csrf-token': getCsrfToken() || '',
+            },
+        });
 
-        if (error) {
-            alert(`Erro ao excluir: ${error.message}`);
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            alert(`Erro ao excluir: ${err.error || 'Falha na requisição'}`);
         } else {
             setUsuarios(prev => prev.filter(u => u.id !== confirmTarget.id));
             alert(`Usuário ${confirmTarget.nome_completo} excluído com sucesso.`);

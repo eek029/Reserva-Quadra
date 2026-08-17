@@ -37,21 +37,38 @@ export default function ProfileReviewPanel({ currentUserId, currentUserRole, cur
 
     const fetchRequests = useCallback(async () => {
         setIsLoading(true);
-        let query = supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token || '';
+
+        const { data } = await supabase
             .from('solicitacoes_perfil')
-            .select('*, usuarios!solicitacoes_perfil_usuario_id_fkey(nome_completo, cargo, torre, apartamento)')
+            .select('id, usuario_id, novo_nome, novo_cpf, nova_foto_url, status, created_at')
             .eq('status', 'pendente')
             .order('created_at', { ascending: true });
 
-        if (currentUserRole === 'Subsíndico') {
-            query = query.eq('usuarios.torre', currentUserTorre);
+        if (!data) {
+            setIsLoading(false);
+            return;
         }
 
-        const { data } = await query;
-        if (data) {
-            const filtered = data.filter((d: Solicitacao) => d.usuarios !== null);
-            setRequests(filtered);
-        }
+        const res = await fetch('/api/usuarios?status=todos', {
+            headers: { Authorization: `Bearer ${token}` },
+        });
+        const payload = res.ok ? await res.json() : { usuarios: [] };
+        const byId = new Map<string, Solicitacao['usuarios']>(
+            (payload.usuarios ?? []).map((u: Solicitacao['usuarios'] & { id: string }) => [u.id, u])
+        );
+
+        const hydrated = data
+            .map((d: { usuario_id: string; id: string; novo_nome: string | null; novo_cpf: string | null; nova_foto_url: string | null; status: string; created_at: string }) => {
+                const user = byId.get(d.usuario_id);
+                if (!user) return null;
+                if (currentUserRole === 'Subsíndico' && user.torre !== currentUserTorre) return null;
+                return { ...d, usuarios: user };
+            })
+            .filter((row): row is Solicitacao => row !== null);
+
+        setRequests(hydrated);
         setIsLoading(false);
     }, [currentUserRole, currentUserTorre]);
 

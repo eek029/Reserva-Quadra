@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServiceClient } from '@/lib/supabase-server';
 import { createRateLimiter } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { assinarFotoUrl } from '@/lib/avatar';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
       status: dados.status,
       cpf: dados.cpf,
       rg: dados.rg,
-      foto_url: dados.foto_url,
+      foto_url: await assinarFotoUrl(supabase, dados.foto_url),
     };
 
     return NextResponse.json(dadosLimpos);
