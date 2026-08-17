@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     if (authError || !user) return NextResponse.json({ error: 'Token inválido.' }, { status: 401 });
 
     const torre = await getConfig(supabase, 'torre_gestao_chaves');
-    return NextResponse.json({ torre_gestao_chaves: torre ?? '5' });
+    return NextResponse.json({ torre_gestao_chaves: torre || null });
   } catch {
     return NextResponse.json({ error: 'Erro ao ler configuração.' }, { status: 500 });
   }

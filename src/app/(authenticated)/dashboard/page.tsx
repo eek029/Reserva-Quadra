@@ -648,6 +648,11 @@ export default function DashboardPage() {
                                     <p className="text-xs text-gray-500 mb-2">
                                         Torre responsável pela prancheta e controle de chaves:
                                     </p>
+                                    {!torreGestaoChaves && (
+                                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2 py-1.5 mb-2">
+                                            Nenhuma torre definida ainda. Escolha para liberar a prancheta dos porteiros.
+                                        </p>
+                                    )}
                                     <div className="flex gap-2">
                                         {['1','2','3','4','5'].map(t => (
                                             <button
@@ -671,7 +676,16 @@ export default function DashboardPage() {
             )}
 
             {currentUser.cargo === 'Porteiro' ? (
-                torreGestaoChaves && currentUser.torre !== torreGestaoChaves ? (
+                !torreGestaoChaves ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
+                        <p className="text-amber-800 font-semibold">
+                            A torre da gestão de chaves ainda não foi definida.
+                        </p>
+                        <p className="text-amber-600 text-sm mt-1">
+                            Peça ao Síndico Geral para escolher a torre no dashboard.
+                        </p>
+                    </div>
+                ) : currentUser.torre !== torreGestaoChaves ? (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 text-center">
                         <p className="text-amber-800 font-semibold">
                             A gestão de chaves está centralizada na Torre {torreGestaoChaves}.
