@@ -48,6 +48,25 @@ export const criarBloqueioSchema = z.object({
   motivo: z.enum(['Chuva', 'Manutenção'], { message: "Motivo deve ser 'Chuva' ou 'Manutenção'" }),
 })
 
+const FOTO_DATA_URI_MAX = 1_500_000
+const FOTO_DATA_URI_RE = /^data:image\/(jpeg|jpg|png|webp);base64,[A-Za-z0-9+/=]+$/
+
+export const fotoPerfilSchema = z.string().min(1, 'A foto de perfil é obrigatória.').refine((value) => {
+  if (FOTO_DATA_URI_RE.test(value)) {
+    return value.length >= 100 && value.length <= FOTO_DATA_URI_MAX
+  }
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && value.length <= 2048
+  } catch {
+    return false
+  }
+}, 'Envie uma foto válida (JPEG, PNG ou WebP).')
+
+export function temFotoPerfil(foto?: string | null): boolean {
+  return typeof foto === 'string' && foto.trim().length > 0
+}
+
 export const criarUsuarioSchema = z.object({
   nome_completo: z.string().min(1, 'Nome é obrigatório'),
   data_nascimento: z.string().regex(dateRegex, 'Formato deve ser YYYY-MM-DD'),
@@ -55,7 +74,7 @@ export const criarUsuarioSchema = z.object({
   apartamento: z.string().nullable().optional(),
   torre: z.string().nullable().optional(),
   bloco: z.string().nullable().optional(),
-  foto_url: z.string().nullable().optional(),
+  foto_url: fotoPerfilSchema,
   cargo: z.string().optional(),
   rg: z.string().regex(rgRegex, 'RG deve estar no formato XX.XXX.XXX-X'),
   cpf: z.string().regex(cpfRegex, 'CPF deve estar no formato XXX.XXX.XXX-XX'),

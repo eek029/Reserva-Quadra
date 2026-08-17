@@ -130,11 +130,17 @@ export default function CompletarCadastroPage() {
             // If profile is already complete, go to dashboard
             const { data: profile } = await supabase
                 .from('usuarios')
-                .select('cpf_encrypted, cargo')
+                .select('cpf_encrypted, cargo, foto_url')
                 .eq('id', session.user.id)
                 .maybeSingle();
 
-            if (profile?.cpf_encrypted && profile?.cargo) {
+            const cadastroCompleto = Boolean(
+                profile?.cpf_encrypted
+                && profile?.cargo
+                && (profile?.cargo === 'SysAdmin' || profile?.foto_url?.trim())
+            );
+
+            if (cadastroCompleto) {
                 router.replace('/dashboard');
                 return;
             }
@@ -254,7 +260,7 @@ export default function CompletarCadastroPage() {
                                     <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                                 </label>
                             </div>
-                            <span className="text-sm font-medium text-gray-700">Sua Foto</span>
+                            <span className="text-sm font-medium text-gray-700">Sua Foto <span className="text-red-500">*</span></span>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

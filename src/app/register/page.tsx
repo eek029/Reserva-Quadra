@@ -259,7 +259,7 @@ export default function RegisterPage() {
                                     <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
                                 </label>
                             </div>
-                            <span className="text-sm font-medium text-gray-700">Sua Foto</span>
+                            <span className="text-sm font-medium text-gray-700">Sua Foto <span className="text-red-500">*</span></span>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

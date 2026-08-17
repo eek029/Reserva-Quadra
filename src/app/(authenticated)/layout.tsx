@@ -25,16 +25,22 @@ export default function DashboardLayout({
 
                 const { data: userData } = await supabase
                     .from('usuarios')
-                    .select('status, cpf_encrypted, cargo')
+                    .select('status, cpf_encrypted, cargo, foto_url')
                     .eq('id', session.user.id)
                     .maybeSingle();
 
-                if (!userData || !userData.cpf_encrypted || !userData.cargo) {
+                const cadastroCompleto = Boolean(
+                    userData?.cpf_encrypted
+                    && userData?.cargo
+                    && (userData?.cargo === 'SysAdmin' || userData?.foto_url?.trim())
+                );
+
+                if (!cadastroCompleto) {
                     router.replace('/completar-cadastro');
                     return;
                 }
 
-                if (userData.status?.toLowerCase() !== 'aprovado') {
+                if (userData?.status?.toLowerCase() !== 'aprovado') {
                     setIsPending(true);
                     return;
                 }

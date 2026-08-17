@@ -1,7 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { criarUsuarioSchema, atualizarUsuarioSchema, statusQuerySchema } from '@/lib/validators'
+import { criarUsuarioSchema, atualizarUsuarioSchema, statusQuerySchema, temFotoPerfil } from '@/lib/validators'
 import { AppError, ValidationError, ForbiddenError } from './reserva'
 export { AppError, ValidationError, ForbiddenError }
+
+const ALLOWED_AVATAR_MIMES = new Set(['image/jpeg', 'image/jpg', 'image/png', 'image/webp'])
+const MAX_AVATAR_BYTES = 1_048_576
 
 function nullifyEmpty(value: unknown): string | null {
   if (typeof value !== 'string') return null
@@ -9,26 +12,36 @@ function nullifyEmpty(value: unknown): string | null {
   return trimmed === '' ? null : trimmed
 }
 
-async function uploadAvatar(supabase: SupabaseClient, userId: string, dataUri: string): Promise<string | null> {
-  if (!dataUri.startsWith('data:')) return dataUri
-  try {
-    const [meta, base64Data] = dataUri.split(',')
-    if (!base64Data) return null
-    const mimeMatch = meta.match(/data:([^;]+);/)
-    const mimeType = mimeMatch?.[1] ?? 'image/jpeg'
-    const ext = mimeType.split('/')[1]?.split('+')[0] ?? 'jpg'
-    const buffer = Buffer.from(base64Data, 'base64')
-    const filePath = `avatars/${userId}.${ext}`
-
-    const { error: uploadError } = await supabase.storage
-      .from('avatars').upload(filePath, buffer, { contentType: mimeType, upsert: true })
-
-    if (uploadError) return dataUri
-    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
-    return urlData?.publicUrl ?? dataUri
-  } catch {
+async function uploadAvatar(supabase: SupabaseClient, userId: string, dataUri: string): Promise<string> {
+  if (!dataUri.startsWith('data:')) {
+    if (!dataUri.startsWith('https://')) throw new ValidationError('URL da foto inválida.')
     return dataUri
   }
+
+  const [meta, base64Data] = dataUri.split(',')
+  if (!base64Data) throw new ValidationError('A foto de perfil é obrigatória.')
+
+  const mimeMatch = meta.match(/data:([^;]+);/)
+  const mimeType = mimeMatch?.[1] ?? ''
+  if (!ALLOWED_AVATAR_MIMES.has(mimeType)) {
+    throw new ValidationError('Envie uma foto válida (JPEG, PNG ou WebP).')
+  }
+
+  const buffer = Buffer.from(base64Data, 'base64')
+  if (buffer.length === 0 || buffer.length > MAX_AVATAR_BYTES) {
+    throw new ValidationError('A foto deve ter no máximo 1 MB.')
+  }
+
+  const ext = mimeType.split('/')[1]?.split('+')[0] ?? 'jpg'
+  const filePath = `avatars/${userId}.${ext}`
+  const { error: uploadError } = await supabase.storage
+    .from('avatars').upload(filePath, buffer, { contentType: mimeType, upsert: true })
+
+  if (uploadError) throw new ValidationError('Falha ao enviar a foto. Tente novamente.')
+
+  const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath)
+  if (!urlData?.publicUrl) throw new ValidationError('Falha ao enviar a foto. Tente novamente.')
+  return urlData.publicUrl
 }
 
 const ALLOWED_CARGOS = ['SysAdmin', 'Síndico Geral', 'Subsíndico', 'Porteiro'] as const
@@ -64,7 +77,7 @@ export async function criarUsuario(supabase: SupabaseClient, authId: string, bod
   if (!parsed.success) throw new ValidationError(parsed.error.issues[0].message)
   const b = parsed.data
 
-  const fotoUrl = b.foto_url ? await uploadAvatar(supabase, authId, b.foto_url) : null
+  const fotoUrl = await uploadAvatar(supabase, authId, b.foto_url)
 
   const { data, error } = await supabase.rpc('create_usuario_encrypted', {
     p_id: authId,
@@ -98,6 +111,15 @@ export async function atualizarUsuario(supabase: SupabaseClient, id: string, cal
   const update = parsed.data as Record<string, string | null | undefined>
   Object.keys(update).forEach(k => { if (update[k] === undefined) delete update[k] })
   if (Object.keys(update).length === 0) throw new ValidationError('Nenhum campo válido para atualizar.')
+
+  if (update.status === 'aprovado') {
+    const { data: target, error: targetError } = await supabase
+      .from('usuarios').select('foto_url, cargo').eq('id', id).maybeSingle()
+    if (targetError) throw new AppError(targetError.message, 500)
+    if (target?.cargo !== 'SysAdmin' && !temFotoPerfil(target?.foto_url)) {
+      throw new ValidationError('Não é possível aprovar cadastro sem foto de perfil.')
+    }
+  }
 
   // Extract encrypted fields (CPF, RG) and handle them via RPC
   const cpf = update.cpf ?? undefined

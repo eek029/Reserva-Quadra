@@ -15,7 +15,12 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
     bloco text,
     foto_url text,
     cargo text NOT NULL DEFAULT 'Morador'::text,
-    status text NOT NULL DEFAULT 'pendente'::text
+    status text NOT NULL DEFAULT 'pendente'::text,
+    CONSTRAINT usuarios_aprovado_exige_foto CHECK (
+        status IS DISTINCT FROM 'aprovado'
+        OR cargo = 'SysAdmin'
+        OR (foto_url IS NOT NULL AND length(btrim(foto_url)) > 0)
+    )
 );
 
 CREATE TABLE IF NOT EXISTS public.reservas (
@@ -270,13 +275,26 @@ CREATE OR REPLACE FUNCTION public.create_usuario_encrypted(
 RETURNS uuid
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path TO 'public'
 AS $$
-DECLARE v_secret_key text;
+DECLARE
+    v_secret_key text;
+    v_foto text;
 BEGIN
+    IF auth.uid() IS NOT NULL AND auth.uid() IS DISTINCT FROM p_id THEN
+        RAISE EXCEPTION 'Não autorizado' USING ERRCODE = '42501';
+    END IF;
+
+    v_foto := NULLIF(btrim(COALESCE(p_foto_url, '')), '');
+    IF v_foto IS NULL THEN
+        RAISE EXCEPTION 'A foto de perfil é obrigatória para finalizar o cadastro'
+            USING ERRCODE = '23502';
+    END IF;
+
     SELECT decrypted_secret INTO v_secret_key FROM vault.decrypted_secrets WHERE name = 'encryption_key';
     INSERT INTO public.usuarios (id, nome_completo, data_nascimento, telefone, apartamento, torre, bloco, foto_url, cargo, rg_encrypted, cpf_encrypted, status)
-    VALUES (p_id, p_nome_completo, p_data_nascimento, p_telefone, NULLIF(p_apartamento, ''), NULLIF(p_torre, ''), NULLIF(p_bloco, ''), NULLIF(p_foto_url, ''), COALESCE(NULLIF(p_cargo, ''), 'Morador'), pgp_sym_encrypt(COALESCE(p_rg, 'Nao informado'), v_secret_key), pgp_sym_encrypt(p_cpf, v_secret_key), 'pendente')
-    ON CONFLICT (id) DO UPDATE SET nome_completo = EXCLUDED.nome_completo, data_nascimento = EXCLUDED.data_nascimento, telefone = EXCLUDED.telefone, apartamento = NULLIF(EXCLUDED.apartamento, ''), torre = NULLIF(EXCLUDED.torre, ''), bloco = NULLIF(EXCLUDED.bloco, ''), foto_url = NULLIF(EXCLUDED.foto_url, ''), cargo = EXCLUDED.cargo, rg_encrypted = EXCLUDED.rg_encrypted, cpf_encrypted = EXCLUDED.cpf_encrypted;
+    VALUES (p_id, p_nome_completo, p_data_nascimento, p_telefone, NULLIF(p_apartamento, ''), NULLIF(p_torre, ''), NULLIF(p_bloco, ''), v_foto, COALESCE(NULLIF(p_cargo, ''), 'Morador'), pgp_sym_encrypt(COALESCE(p_rg, 'Nao informado'), v_secret_key), pgp_sym_encrypt(p_cpf, v_secret_key), 'pendente')
+    ON CONFLICT (id) DO UPDATE SET nome_completo = EXCLUDED.nome_completo, data_nascimento = EXCLUDED.data_nascimento, telefone = EXCLUDED.telefone, apartamento = NULLIF(EXCLUDED.apartamento, ''), torre = NULLIF(EXCLUDED.torre, ''), bloco = NULLIF(EXCLUDED.bloco, ''), foto_url = COALESCE(NULLIF(EXCLUDED.foto_url, ''), usuarios.foto_url), cargo = EXCLUDED.cargo, rg_encrypted = EXCLUDED.rg_encrypted, cpf_encrypted = EXCLUDED.cpf_encrypted;
     RETURN p_id;
 END;
 $$;

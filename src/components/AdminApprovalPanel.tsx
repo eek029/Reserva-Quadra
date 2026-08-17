@@ -225,6 +225,12 @@ function AuditModal({
                     </div>
                 </div>
 
+                {!user.foto_url && (
+                    <p className="px-5 pb-2 text-xs text-amber-700 bg-amber-50 mx-5 mb-2 rounded-lg py-2">
+                        Este cadastro não tem foto de perfil. Peça ao morador para completar o cadastro com foto antes de aprovar.
+                    </p>
+                )}
+
                 {/* Botões */}
                 <div className="px-5 pb-5 flex gap-3">
                     <button
@@ -236,8 +242,9 @@ function AuditModal({
                         Reprovar
                     </button>
                     <button
-                        disabled={loading}
+                        disabled={loading || !user.foto_url}
                         onClick={() => onApprove(user.id)}
+                        title={!user.foto_url ? 'Cadastro sem foto não pode ser aprovado' : undefined}
                         className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-green-200 text-green-700 bg-green-50 hover:bg-green-100 font-semibold text-sm transition-colors disabled:opacity-50"
                     >
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}

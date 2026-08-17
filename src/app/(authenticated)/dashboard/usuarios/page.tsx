@@ -19,6 +19,7 @@ interface Usuario {
     bloco?: string;
     status: string;
     telefone?: string;
+    foto_url?: string | null;
 }
 
 interface CurrentUser {
@@ -62,7 +63,7 @@ export default function UsuariosPage() {
 
         let query = supabase
             .from('usuarios')
-            .select('id, nome_completo, cargo, torre, apartamento, bloco, status, telefone', { count: 'exact' })
+            .select('id, nome_completo, cargo, torre, apartamento, bloco, status, telefone, foto_url', { count: 'exact' })
             .neq('id', currentUser.id)
             .eq('status', statusFilter)
             .order('nome_completo', { ascending: true })
@@ -102,8 +103,17 @@ export default function UsuariosPage() {
     useEffect(() => { setPage(1); }, [search, torreFilter, statusFilter]);
 
     const handleApprove = async (userId: string) => {
+        const target = usuarios.find(u => u.id === userId);
+        if (target?.cargo !== 'SysAdmin' && !target?.foto_url) {
+            alert('Não é possível aprovar cadastro sem foto de perfil.');
+            return;
+        }
         const { error } = await supabase.from('usuarios').update({ status: 'aprovado' }).eq('id', userId);
-        if (!error) fetchUsuarios();
+        if (error) {
+            alert(error.message || 'Falha ao aprovar usuário.');
+            return;
+        }
+        fetchUsuarios();
     };
 
     const handleReject = async (userId: string) => {
@@ -255,7 +265,12 @@ export default function UsuariosPage() {
                                     <div className="flex items-center justify-center gap-2">
                                         {u.status === 'pendente' && (
                                             <>
-                                                <button onClick={() => handleApprove(u.id)} className="text-xs font-bold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors">✓ Aprovar</button>
+                                                <button
+                                                    onClick={() => handleApprove(u.id)}
+                                                    disabled={u.cargo !== 'SysAdmin' && !u.foto_url}
+                                                    title={u.cargo !== 'SysAdmin' && !u.foto_url ? 'Cadastro sem foto não pode ser aprovado' : undefined}
+                                                    className="text-xs font-bold px-2 py-1 rounded-lg bg-green-50 text-green-700 hover:bg-green-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                                >✓ Aprovar</button>
                                                 <button onClick={() => handleReject(u.id)} className="text-xs font-bold px-2 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors">✗ Rejeitar</button>
                                             </>
                                         )}
