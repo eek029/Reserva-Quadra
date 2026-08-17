@@ -152,14 +152,12 @@ CREATE POLICY "Admin pode atualizar qualquer perfil" ON public.usuarios
 
 -- RLS Policies: reservas
 CREATE POLICY "select_reservas" ON public.reservas
-    FOR SELECT
-    USING (
-        public.get_current_user_cargo() IS DISTINCT FROM 'Subsíndico'
-        OR EXISTS (
-            SELECT 1 FROM public.usuarios u
-            WHERE u.id = reservas.usuario_id AND u.torre = public.get_current_user_torre()
-        )
-    );
+    FOR SELECT TO authenticated
+    USING (true);
+
+CREATE POLICY "Autenticados podem ver bloqueios" ON public.bloqueios
+    FOR SELECT TO authenticated
+    USING (true);
 
 CREATE POLICY "Permitir insercao de reservas" ON public.reservas
     FOR INSERT TO authenticated
